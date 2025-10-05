@@ -1088,6 +1088,7 @@ body {
 @media (max-width: 768px) {
     .container {
         padding: 20px 15px;
+        max-width: 100%;
     }
 
     .header-content {
@@ -1113,9 +1114,10 @@ body {
         height: 45px;
     }
 
-    .input-section, .stats-section, .chart-section, .history-section {
+    .input-section, .stats-section, .chart-section, .history-section, .streak-section, .challenge-section, .achievements-section {
         padding: 20px;
         margin-bottom: 20px;
+        border-radius: 20px;
     }
 
     .stats-container {
@@ -1125,6 +1127,16 @@ body {
 
     .stat-item {
         padding: 15px;
+    }
+
+    .streak-container {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .achievements-container {
+        grid-template-columns: 1fr;
+        gap: 15px;
     }
 
     .chart-container {
@@ -1201,6 +1213,10 @@ body {
         grid-template-columns: repeat(2, 1fr);
     }
 
+    .skeleton-streak-container {
+        grid-template-columns: 1fr;
+    }
+
     .skeleton-history-item {
         height: 60px;
     }
@@ -1218,11 +1234,6 @@ body {
         font-size: 1.2rem;
     }
 
-    .streak-container {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-
     .achievement-modal-content {
         padding: 25px;
         max-width: 350px;
@@ -1236,21 +1247,6 @@ body {
 
     .achievement-modal-name {
         font-size: 1.5rem;
-    }
-
-    .achievement-modal-content {
-        padding: 20px;
-        max-width: 300px;
-        width: 100%;
-        margin: 0 auto;
-    }
-
-    .achievement-modal-icon {
-        font-size: 2.5rem;
-    }
-
-    .achievement-modal-name {
-        font-size: 1.3rem;
     }
 
     .challenge-header {
@@ -1278,6 +1274,23 @@ body {
         margin-top: 15px;
     }
 
+    /* 输入区域头部优化 */
+    .input-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+
+    .input-header h2 {
+        text-align: center;
+    }
+
+    .batch-input-btn {
+        align-self: center;
+        padding: 8px 16px;
+        font-size: 0.85rem;
+    }
+
     /* 挑战模态框移动端优化 */
     .challenge-modal-content {
         padding: 20px;
@@ -1300,23 +1313,141 @@ body {
     .challenge-cancel-btn, .challenge-confirm-btn {
         width: 100%;
     }
+
+    /* 批量录入模态框移动端优化 */
+    .batch-input-content {
+        padding: 20px;
+        max-width: 400px;
+    }
+
+    .batch-input-icon {
+        font-size: 2.5rem;
+    }
+
+    .batch-input-content h3 {
+        font-size: 1.2rem;
+    }
+
+    .batch-input-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .batch-cancel-btn, .batch-confirm-btn {
+        width: 100%;
+    }
 }
 
 @media (max-width: 480px) {
+    .container {
+        padding: 15px 10px;
+    }
+
     .header h1 {
         font-size: 1.8rem;
     }
 
-    .input-section, .stats-section, .chart-section, .history-section {
+    .header p {
+        font-size: 0.9rem;
+    }
+
+    .input-section, .stats-section, .chart-section, .history-section, .streak-section, .challenge-section, .achievements-section {
         padding: 15px;
+        margin-bottom: 15px;
     }
 
     .form-group input {
-        padding: 10px;
+        padding: 12px 14px;
+        font-size: 0.95rem;
     }
 
     .submit-btn {
+        padding: 14px 20px;
+        font-size: 0.95rem;
+    }
+
+    .stat-item {
         padding: 12px;
+    }
+
+    .streak-item {
+        padding: 12px;
+    }
+
+    .achievement-item {
+        padding: 15px;
+    }
+
+    .chart-container {
+        height: 250px;
+    }
+
+    .history-item {
+        padding: 12px;
+    }
+
+    /* 超小屏幕优化 */
+    .tab-btn {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+        min-width: 70px;
+    }
+
+    .batch-input-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+
+    .challenge-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 360px) {
+    .header h1 {
+        font-size: 1.6rem;
+    }
+
+    .header p {
+        font-size: 0.85rem;
+    }
+
+    .container {
+        padding: 10px 8px;
+    }
+
+    .input-section, .stats-section, .chart-section, .history-section, .streak-section, .challenge-section, .achievements-section {
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+
+    .form-group input {
+        padding: 10px 12px;
+        font-size: 0.9rem;
+    }
+
+    .submit-btn {
+        padding: 12px 16px;
+        font-size: 0.9rem;
+    }
+
+    .tab-btn {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        min-width: 60px;
+    }
+
+    .stat-value, .streak-value, .challenge-value {
+        font-size: 1.2rem;
+    }
+
+    .achievement-title {
+        font-size: 1rem;
+    }
+
+    .achievement-desc {
+        font-size: 0.85rem;
     }
 }
 
@@ -2080,4 +2211,108 @@ body {
     color: #666;
     padding: 40px 20px;
     font-style: italic;
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+    /* 增大触摸目标 */
+    .tab-btn, .batch-input-btn, .challenge-btn, .export-btn, .clear-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    .theme-toggle, .edit-btn, .delete-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* 优化按钮间距 */
+    .chart-tabs {
+        gap: 8px;
+    }
+
+    .history-controls {
+        gap: 12px;
+    }
+
+    .action-buttons {
+        gap: 12px;
+    }
+
+    /* 防止意外缩放 */
+    .form-group input, .batch-input-form input, .challenge-form-group input {
+        font-size: 16px; /* 防止iOS自动缩放 */
+    }
+}
+
+/* 横屏优化 */
+@media (orientation: landscape) and (max-height: 600px) {
+    .container {
+        padding: 10px 15px;
+    }
+
+    .header {
+        margin-bottom: 20px;
+    }
+
+    .header h1 {
+        font-size: 1.8rem;
+        margin-bottom: 8px;
+    }
+
+    .header p {
+        font-size: 0.9rem;
+    }
+
+    .input-section, .stats-section, .chart-section, .history-section, .streak-section, .challenge-section, .achievements-section {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+
+    .chart-container {
+        height: 200px;
+    }
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+    :root {
+        --border-color: rgba(0, 0, 0, 0.3);
+        --text-secondary: #000;
+    }
+
+    [data-theme="dark"] {
+        --border-color: rgba(255, 255, 255, 0.3);
+        --text-secondary: #fff;
+    }
+}
+
+/* 减少动画模式支持 */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* 深色模式媒体查询支持 */
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+        --bg-primary: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+        --bg-secondary: rgba(26, 32, 44, 0.8);
+        --bg-tertiary: rgba(45, 55, 72, 0.7);
+        --bg-card: rgba(26, 32, 44, 0.8);
+        --text-primary: #f7fafc;
+        --text-secondary: #e2e8f0;
+        --text-muted: #a0aec0;
+        --border-color: rgba(255, 255, 255, 0.1);
+        --shadow-color: rgba(0, 0, 0, 0.3);
+        --accent-color: #ffd700;
+        --success-color: #68d391;
+        --error-color: #fc8181;
+        --warning-color: #f6ad55;
+        --glass-bg: rgba(0, 0, 0, 0.2);
+        --glass-border: rgba(255, 255, 255, 0.1);
+    }
 }

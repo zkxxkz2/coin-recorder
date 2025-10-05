@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单时区测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .time-info {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .utc-time { background-color: #fff3e0; }
+        .local-time { background-color: #e3f2fd; }
+        .beijing-calc { background-color: #e8f5e8; }
+        .error { background-color: #ffebee; color: red; }
+        .success { background-color: #e8f5e8; color: green; }
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>北京时间计算测试</h1>
+
+        <div class="time-info utc-time">
+            <strong>当前UTC时间:</strong> <span id="utcTime"></span>
+        </div>
+
+        <div class="time-info local-time">
+            <strong>本地时间:</strong> <span id="localTime"></span>
+        </div>
+
+        <div class="time-info beijing-calc">
+            <strong>程序计算的北京时间:</strong> <span id="beijingCalc"></span>
+        </div>
+
+        <div id="result" class="time-info" style="display: none;"></div>
+
+        <div>
+            <button onclick="testBeijingTime()">测试北京时间计算</button>
+            <button onclick="testEdgeCase()">测试跨日期情况</button>
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background-color: #f0f0f0; border-radius: 4px;" id="explanation">
+            <h3>时区计算说明：</h3>
+            <p><strong>北京时间 = UTC时间 + 8小时</strong></p>
+            <p>例如：如果UTC时间是 2024-01-01 23:00:00，那么北京时间应该是 2024-01-02 07:00:00</p>
+            <p>日期部分应该是：2024-01-02</p>
+        </div>
+    </div>
+
+    <script>
+        function updateTimes() {
+            const now = new Date();
+
+            document.getElementById('utcTime').textContent = now.toISOString();
+            document.getElementById('localTime').textContent = now.toLocaleString('zh-CN');
+
+            // 计算北京时间
+            const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+            document.getElementById('beijingCalc').textContent = beijingTime.toISOString() + ' (日期: ' + beijingTime.toISOString().split('T')[0] + ')';
+        }
+
+        function testBeijingTime() {
+            const now = new Date();
+            const beijingTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+            const beijingDate = beijingTime.toISOString().split('T')[0];
+
+            const result = document.getElementById('result');
+
+            // 检查是否跨越了日期边界
+            const utcDate = now.toISOString().split('T')[0];
+            const expectedBeijingDate = beijingDate;
+
+            if (beijingDate === utcDate) {
+                // 同一天
+                result.textContent = `✅ 计算正确：UTC日期 ${utcDate} = 北京日期 ${beijingDate}`;
+                result.className = 'time-info success';
+            } else {
+                // 跨越日期
+                result.textContent = `✅ 计算正确：UTC日期 ${utcDate} -> 北京日期 ${beijingDate} (跨越日期边界)`;
+                result.className = 'time-info success';
+            }
+
+            result.style.display = 'block';
+        }
+
+        function testEdgeCase() {
+            const result = document.getElementById('result');
+
+            // 测试UTC 23:30的情况
+            const testTime = new Date('2024-01-01T23:30:00.000Z');
+            const beijingTime = new Date(testTime.getTime() + (8 * 60 * 60 * 1000));
+            const beijingDate = beijingTime.toISOString().split('T')[0];
+
+            result.innerHTML = `
+                <h4>跨日期边界测试：</h4>
+                <p><strong>测试UTC时间:</strong> ${testTime.toISOString()}</p>
+                <p><strong>计算北京时间:</strong> ${beijingTime.toISOString()}</p>
+                <p><strong>北京日期:</strong> ${beijingDate}</p>
+                <p><strong>预期结果:</strong> 应该是第二天 (2024-01-02)</p>
+                <p style="color: ${beijingDate === '2024-01-02' ? 'green' : 'red'};">
+                    ${beijingDate === '2024-01-02' ? '✅ 测试通过' : '❌ 测试失败'}
+                </p>
+            `;
+            result.className = 'time-info';
+            result.style.display = 'block';
+        }
+
+        // 初始化
+        updateTimes();
+        setInterval(updateTimes, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>最终时区测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .time-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .time-item {
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .utc-time { background-color: #fff3e0; }
+        .beijing-time { background-color: #e8f5e8; }
+        .local-time { background-color: #e3f2fd; }
+        .program-time { background-color: #fce4ec; }
+        button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1976d2;
+        }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+        .warning { color: orange; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>金币记录器时区修正测试</h1>
+        <p>测试修正后的北京时间计算是否正确</p>
+
+        <div class="time-display">
+            <div class="time-item utc-time">
+                <h3>UTC时间</h3>
+                <div id="utcTime"></div>
+                <div id="utcDate"></div>
+            </div>
+            <div class="time-item local-time">
+                <h3>本地时间</h3>
+                <div id="localTime"></div>
+                <div id="localDate"></div>
+            </div>
+            <div class="time-item beijing-time">
+                <h3>北京时间</h3>
+                <div id="beijingTime"></div>
+                <div id="beijingDate"></div>
+            </div>
+            <div class="time-item program-time">
+                <h3>程序日期</h3>
+                <div id="programDate"></div>
+                <div id="programYesterday"></div>
+            </div>
+        </div>
+
+        <div>
+            <button onclick="updateTimes()">刷新时间</button>
+            <button onclick="testBeijingCalculation()">测试北京时间计算</button>
+            <button onclick="testEdgeCases()">测试边界情况</button>
+        </div>
+
+        <div id="testResults" style="margin-top: 20px; padding: 15px; background-color: #f0f0f0; border-radius: 4px;"></div>
+
+        <div style="margin-top: 20px; padding: 15px; background-color: #e3f2fd; border-radius: 4px;">
+            <h3>修正说明：</h3>
+            <p>✅ 使用 Intl.DateTimeFormat API 确保准确的北京时间计算</p>
+            <p>✅ 统一所有日期判断使用北京时间（UTC+8）</p>
+            <p>✅ 添加备用计算方法以防 Intl API 不可用</p>
+            <p>✅ 解决跨时区日期判断问题</p>
+        </div>
+    </div>
+
+    <script>
+        // 修正后的金币记录器北京时间函数
+        function getBeijingDate() {
+            const now = new Date();
+            try {
+                // 方法1：使用Intl.DateTimeFormat（最准确）
+                const beijingDate = new Intl.DateTimeFormat('zh-CN', {
+                    timeZone: 'Asia/Shanghai',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                }).format(now).replace(/\//g, '-');
+
+                return beijingDate;
+            } catch (error) {
+                // 备用方法：手动计算（如果Intl不可用）
+                console.warn('Intl API不可用，使用备用方法:', error);
+                const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+                const beijingTime = new Date(utc + (8 * 60 * 60 * 1000));
+                return beijingTime.toISOString().split('T')[0];
+            }
+        }
+
+        function getBeijingYesterdayDate() {
+            try {
+                // 方法1：使用Intl API计算昨天的北京时间
+                const now = new Date();
+                const yesterday = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+
+                const yesterdayBeijingDate = new Intl.DateTimeFormat('zh-CN', {
+                    timeZone: 'Asia/Shanghai',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                }).format(yesterday).replace(/\//g, '-');
+
+                return yesterdayBeijingDate;
+            } catch (error) {
+                // 备用方法：手动计算昨天的北京时间
+                console.warn('计算昨天日期时Intl API不可用，使用备用方法:', error);
+                const today = getBeijingDate();
+                const date = new Date(today + 'T00:00:00+08:00');
+                date.setDate(date.getDate() - 1);
+                return date.toISOString().split('T')[0];
+            }
+        }
+
+        function updateTimes() {
+            const now = new Date();
+
+            // UTC时间
+            document.getElementById('utcTime').textContent = now.toISOString().split('T')[1].split('.')[0];
+            document.getElementById('utcDate').textContent = now.toISOString().split('T')[0];
+
+            // 本地时间
+            document.getElementById('localTime').textContent = now.toLocaleTimeString('zh-CN');
+            document.getElementById('localDate').textContent = now.toLocaleDateString('zh-CN');
+
+            // 北京时间（使用Intl API）
+            try {
+                const beijingTime = new Intl.DateTimeFormat('zh-CN', {
+                    timeZone: 'Asia/Shanghai',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                }).format(now);
+
+                const beijingDate = beijingTime.split(' ')[0];
+                const beijingTimeOnly = beijingTime.split(' ')[1];
+
+                document.getElementById('beijingTime').textContent = beijingTimeOnly;
+                document.getElementById('beijingDate').textContent = beijingDate;
+            } catch (error) {
+                document.getElementById('beijingTime').textContent = '计算错误';
+                document.getElementById('beijingDate').textContent = '计算错误';
+            }
+
+            // 程序计算的日期
+            document.getElementById('programDate').textContent = getBeijingDate();
+            document.getElementById('programYesterday').textContent = getBeijingYesterdayDate();
+        }
+
+        function testBeijingCalculation() {
+            const results = document.getElementById('testResults');
+            const now = new Date();
+
+            let result = '<h3>北京时间计算测试结果：</h3>';
+
+            // 使用Intl API的标准北京时间
+            const standardBeijingTime = new Intl.DateTimeFormat('zh-CN', {
+                timeZone: 'Asia/Shanghai',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            }).format(now);
+
+            const standardBeijingDate = standardBeijingTime.split(' ')[0].replace(/\//g, '-');
+            const programBeijingDate = getBeijingDate();
+
+            result += `<p><strong>当前UTC时间：</strong>${now.toISOString()}</p>`;
+            result += `<p><strong>标准北京时间：</strong>${standardBeijingTime}</p>`;
+            result += `<p><strong>标准北京日期：</strong>${standardBeijingDate}</p>`;
+            result += `<p><strong>程序计算日期：</strong>${programBeijingDate}</p>`;
+
+            if (programBeijingDate === standardBeijingDate) {
+                result += '<p class="success">✅ 北京时间日期计算正确！</p>';
+            } else {
+                result += '<p class="error">❌ 北京时间日期计算错误！</p>';
+                result += `<p class="warning">期望：${standardBeijingDate}，实际：${programBeijingDate}</p>`;
+            }
+
+            results.innerHTML = result;
+        }
+
+        function testEdgeCases() {
+            const results = document.getElementById('testResults');
+
+            let result = '<h3>跨日期边界测试：</h3>';
+
+            // 测试UTC 23:30的情况（北京时间应该是第二天07:30）
+            const testTime = new Date('2024-01-01T23:30:00.000Z');
+
+            const standardBeijingTime = new Intl.DateTimeFormat('zh-CN', {
+                timeZone: 'Asia/Shanghai',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(testTime);
+
+            const standardBeijingDate = standardBeijingTime.split(' ')[0].replace(/\//g, '-');
+
+            // 程序计算结果
+            const programBeijingTime = new Date(testTime.getTime() + (8 * 60 * 60 * 1000));
+            const programBeijingDate = programBeijingTime.toISOString().split('T')[0];
+
+            result += `<p><strong>测试UTC时间：</strong>${testTime.toISOString()}</p>`;
+            result += `<p><strong>标准北京时间：</strong>${standardBeijingTime}</p>`;
+            result += `<p><strong>标准北京日期：</strong>${standardBeijingDate}</p>`;
+            result += `<p><strong>程序计算日期：</strong>${programBeijingDate}</p>`;
+
+            if (programBeijingDate === standardBeijingDate) {
+                result += '<p class="success">✅ 跨日期边界计算正确！</p>';
+            } else {
+                result += '<p class="error">❌ 跨日期边界计算错误！</p>';
+            }
+
+            results.innerHTML = result;
+        }
+
+        // 页面加载时立即更新时间
+        updateTimes();
+
+        // 每秒更新时间
+        setInterval(updateTimes, 1000);
+    </script>
+</body>
+</html>
