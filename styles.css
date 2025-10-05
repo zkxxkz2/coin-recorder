@@ -561,6 +561,22 @@ body {
     box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
 }
 
+.challenge-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.refresh-btn {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+}
+
+.refresh-btn:hover {
+    background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+    box-shadow: 0 6px 20px rgba(23, 162, 184, 0.4);
+}
+
 .challenge-info {
     margin-bottom: 20px;
 }
@@ -1259,8 +1275,14 @@ body {
         text-align: center;
     }
 
+    .challenge-controls {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+
     .challenge-btn {
-        align-self: center;
+        width: 100%;
         padding: 8px 16px;
     }
 

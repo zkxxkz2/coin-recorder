@@ -122,6 +122,12 @@ class CoinTracker {
             this.makeupYesterdayRecord();
         });
 
+        // 挑战刷新按钮
+        const refreshChallengeBtn = document.getElementById('refreshChallengeBtn');
+        refreshChallengeBtn.addEventListener('click', () => {
+            this.refreshChallengeDisplay();
+        });
+
         // 挑战设定按钮
         const setChallengeBtn = document.getElementById('setChallengeBtn');
         setChallengeBtn.addEventListener('click', () => {
@@ -1195,6 +1201,22 @@ class CoinTracker {
         }
 
         this.saveChallengeData();
+    }
+
+    // 刷新挑战显示（手动刷新用）
+    refreshChallengeDisplay() {
+        if (this.challengeData.target > 0) {
+            // 重新计算当前进度
+            this.challengeData.currentProgress = this.calculateTotal();
+
+            // 更新显示
+            this.updateChallengeDisplay();
+
+            // 显示刷新成功消息
+            this.showMessage('挑战进度已刷新！', 'success');
+        } else {
+            this.showMessage('当前没有设定挑战', 'warning');
+        }
     }
 
     showChallengeModal() {
