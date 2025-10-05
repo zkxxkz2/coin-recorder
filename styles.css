@@ -514,6 +514,8 @@ body {
 
 .challenge-container {
     max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
 }
 
 .challenge-current {
@@ -523,6 +525,8 @@ body {
     padding: 25px;
     border: 1px solid var(--border-color);
     box-shadow: 0 4px 15px var(--shadow-color);
+    text-align: center;
+    margin: 0 auto;
 }
 
 .challenge-header {
@@ -579,14 +583,16 @@ body {
 
 .challenge-info {
     margin-bottom: 20px;
+    text-align: center;
 }
 
 .challenge-detail {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     margin-bottom: 10px;
     padding: 8px 0;
+    gap: 15px;
 }
 
 .challenge-label {
@@ -623,6 +629,7 @@ body {
     text-align: center;
     padding: 30px 20px;
     color: var(--text-secondary);
+    margin: 0 auto;
 }
 
 .no-challenge p {
@@ -1287,8 +1294,9 @@ body {
     }
 
     .challenge-detail {
-        flex-direction: column;
-        gap: 5px;
+        flex-direction: row;
+        justify-content: center;
+        gap: 10px;
         text-align: center;
     }
 
