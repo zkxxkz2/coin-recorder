@@ -1,13 +1,25 @@
 // 金币记录器应用
 class CoinTracker {
     constructor() {
-        this.coinData = this.loadData();
+        // 初始化认证管理器
+        this.authManager = new UserAuthManager();
+        this.githubStorage = this.authManager.githubStorage;
+
+        // 初始化为空，登录后加载
+        this.coinData = [];
+        this.streakData = this.getDefaultStreakData();
+        this.challengeData = this.getDefaultChallengeData();
+        this.achievements = this.getDefaultAchievements();
+
         this.totalChart = null;
         this.dailyChart = null;
         this.currentTheme = this.loadTheme();
-        this.achievements = this.loadAchievements();
-        this.streakData = this.loadStreakData();
-        this.challengeData = this.loadChallengeData();
+
+        // 检查登录状态
+        if (this.authManager.isLoggedIn()) {
+            this.loadUserData();
+        }
+
         this.init();
     }
 
@@ -1701,6 +1713,502 @@ class CoinTracker {
                 }
             }, 300);
         }
+    }
+}
+
+// GitHub API客户端类 - 安全的跨设备登录系统
+class GitHubStorage {
+    constructor() {
+        this.baseURL = 'https://api.github.com';
+
+        // 从多种来源加载GitHub凭据
+        this.loadGitHubCredentials();
+    }
+
+    // 加载GitHub凭据（支持多种来源）
+    loadGitHubCredentials() {
+        // 来源1: 本地配置文件（优先级最高，不会被推送到Git）
+        if (typeof window.GITHUB_CONFIG_LOCAL !== 'undefined') {
+            this.token = window.GITHUB_CONFIG_LOCAL.GITHUB_TOKEN;
+            this.repoOwner = window.GITHUB_CONFIG_LOCAL.GITHUB_USERNAME;
+            this.repoName = window.GITHUB_CONFIG_LOCAL.REPO_NAME;
+        }
+        // 来源2: 公开配置文件（会被推送到Git，无敏感信息）
+        else if (typeof window.GITHUB_CONFIG !== 'undefined') {
+            this.token = window.GITHUB_CONFIG.GITHUB_TOKEN;
+            this.repoOwner = window.GITHUB_CONFIG.GITHUB_USERNAME;
+            this.repoName = window.GITHUB_CONFIG.REPO_NAME;
+        }
+
+        // 来源3: 环境变量（适用于服务器环境）
+        if (!this.token && typeof process !== 'undefined' && process.env) {
+            this.token = process.env.GITHUB_TOKEN;
+        }
+
+        // 来源4: URL参数（适用于测试环境）
+        if (!this.token) {
+            const urlParams = new URLSearchParams(window.location.search);
+            this.token = urlParams.get('github_token');
+        }
+
+        // 来源5: 本地存储（适用于开发环境）
+        if (!this.token) {
+            try {
+                const storedToken = localStorage.getItem('github_token');
+                if (storedToken && storedToken !== 'null' && storedToken !== 'undefined') {
+                    this.token = storedToken;
+                }
+            } catch (e) {
+                // localStorage不可用，忽略
+            }
+        }
+
+        // 设置默认值
+        if (!this.repoOwner) this.repoOwner = 'zkxxkz2';
+        if (!this.repoName) this.repoName = 'coin-recorder-data';
+
+        // 令牌状态检查
+        if (!this.token) {
+            console.warn('GitHub令牌未配置，某些功能将被禁用。请在github-config.local.js中配置令牌或通过其他方式提供。');
+        }
+
+        this.dataFilePath = 'users_data.json'; // 统一数据文件路径
+    }
+
+    // 设置GitHub访问令牌
+    setToken(token) {
+        this.token = token;
+        if (token) {
+            try {
+                localStorage.setItem('github_token', token);
+            } catch (e) {
+                console.warn('无法保存令牌到本地存储');
+            }
+        }
+    }
+
+    // 获取请求头
+    getHeaders() {
+        const headers = {
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json'
+        };
+        if (this.token) {
+            headers['Authorization'] = `token ${this.token}`;
+        }
+        return headers;
+    }
+
+    // 从GitHub读取用户数据
+    async loadUsersData() {
+        try {
+            const response = await fetch(
+                `${this.baseURL}/repos/${this.repoOwner}/${this.repoName}/contents/${this.dataFilePath}`,
+                {
+                    method: 'GET',
+                    headers: this.getHeaders()
+                }
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+                // GitHub返回base64编码的内容，需要解码
+                const decodedContent = atob(data.content);
+                return JSON.parse(decodedContent);
+            } else if (response.status === 404) {
+                // 文件不存在，返回空对象
+                return {};
+            } else {
+                throw new Error(`GitHub API错误: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('加载用户数据失败:', error);
+            // 离线时返回空对象，使用本地存储
+            return this.loadLocalFallback();
+        }
+    }
+
+    // 保存用户数据到GitHub
+    async saveUsersData(usersData) {
+        try {
+            // 先获取现有文件的SHA（用于更新）
+            let sha = null;
+            try {
+                const existingResponse = await fetch(
+                    `${this.baseURL}/repos/${this.repoOwner}/${this.repoName}/contents/${this.dataFilePath}`,
+                    { headers: this.getHeaders() }
+                );
+                if (existingResponse.ok) {
+                    const existingData = await existingResponse.json();
+                    sha = existingData.sha;
+                }
+            } catch (e) {
+                // 文件不存在，这是正常的
+            }
+
+            // 准备提交数据
+            const contentBase64 = btoa(JSON.stringify(usersData, null, 2));
+            const commitData = {
+                message: `更新用户数据 - ${new Date().toISOString()}`,
+                content: contentBase64,
+                branch: 'main'
+            };
+
+            if (sha) {
+                commitData.sha = sha;
+            }
+
+            const response = await fetch(
+                `${this.baseURL}/repos/${this.repoOwner}/${this.repoName}/contents/${this.dataFilePath}`,
+                {
+                    method: 'PUT',
+                    headers: this.getHeaders(),
+                    body: JSON.stringify(commitData)
+                }
+            );
+
+            if (response.ok) {
+                console.log('用户数据已保存到GitHub');
+                return true;
+            } else {
+                throw new Error(`保存失败: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('保存用户数据失败:', error);
+            // 保存失败时，使用本地存储作为fallback
+            this.saveLocalFallback(usersData);
+            return false;
+        }
+    }
+
+    // 本地备用存储（网络错误时使用）
+    loadLocalFallback() {
+        try {
+            const localData = localStorage.getItem('coinTrackerUsersData');
+            return localData ? JSON.parse(localData) : {};
+        } catch (error) {
+            console.error('本地备用存储读取失败:', error);
+            return {};
+        }
+    }
+
+    // 保存到本地备用存储
+    saveLocalFallback(usersData) {
+        try {
+            localStorage.setItem('coinTrackerUsersData', JSON.stringify(usersData));
+            console.log('数据已保存到本地备用存储');
+        } catch (error) {
+            console.error('本地备用存储写入失败:', error);
+        }
+    }
+
+    // 获取特定用户数据
+    getUserData(usersData, username) {
+        return usersData[username] || null;
+    }
+
+    // 保存特定用户数据
+    async saveUserData(username, userData) {
+        const usersData = await this.loadUsersData();
+        usersData[username] = {
+            ...userData,
+            lastModified: new Date().toISOString()
+        };
+        return await this.saveUsersData(usersData);
+    }
+
+    // 检查用户是否存在
+    async userExists(username) {
+        const usersData = await this.loadUsersData();
+        return usersData.hasOwnProperty(username);
+    }
+}
+
+// 用户认证管理器 - 使用GitHub中心化存储
+class UserAuthManager {
+    constructor() {
+        this.githubStorage = new GitHubStorage();
+        this.currentUser = null;
+        this.sessionToken = null;
+        this.syncStatus = 'idle'; // idle, syncing, success, error
+        this.lastSyncTime = null;
+        this.offlineQueue = [];
+        this.loadSession();
+        this.setupNetworkDetection();
+    }
+
+    // 生成简单的密码哈希（用于演示，生产环境应使用更安全的哈希）
+    hashPassword(password) {
+        // 使用简单的base64编码作为哈希示例
+        return btoa(password).slice(0, 16);
+    }
+
+    // 验证密码
+    verifyPassword(password, hashedPassword) {
+        return this.hashPassword(password) === hashedPassword;
+    }
+
+    // 用户注册
+    async register(username, password) {
+        try {
+            // 检查用户名是否已存在
+            const exists = await this.githubStorage.userExists(username);
+            if (exists) {
+                throw new Error('用户名已存在');
+            }
+
+            // 创建新用户数据结构
+            const newUser = {
+                username: username,
+                passwordHash: this.hashPassword(password),
+                createdAt: new Date().toISOString(),
+                lastLoginAt: new Date().toISOString(),
+                coinData: [],
+                streakData: {
+                    currentStreak: 0,
+                    longestStreak: 0,
+                    lastRecordDate: null,
+                    todayCompleted: false
+                },
+                challengeData: {
+                    target: 0,
+                    startDate: null,
+                    endDate: null,
+                    currentProgress: 0,
+                    completed: false,
+                    completedDate: null
+                },
+                achievements: {
+                    first_record: { unlocked: false, unlockedDate: null },
+                    week_streak: { unlocked: false, unlockedDate: null },
+                    month_streak: { unlocked: false, unlockedDate: null },
+                    hundred_days: { unlocked: false, unlockedDate: null },
+                    thousand_coins: { unlocked: false, unlockedDate: null },
+                    ten_thousand: { unlocked: false, unlockedDate: null },
+                    twenty_thousand: { unlocked: false, unlockedDate: null },
+                    thirty_thousand: { unlocked: false, unlockedDate: null },
+                    forty_thousand: { unlocked: false, unlockedDate: null },
+                    fifty_thousand: { unlocked: false, unlockedDate: null }
+                }
+            };
+
+            // 保存用户数据到GitHub
+            const success = await this.githubStorage.saveUserData(username, newUser);
+            if (success) {
+                // 注册成功，自动登录
+                await this.login(username, password);
+                return { success: true, message: '注册成功！' };
+            } else {
+                throw new Error('注册失败，请稍后重试');
+            }
+        } catch (error) {
+            console.error('注册失败:', error);
+            return { success: false, message: error.message };
+        }
+    }
+
+    // 用户登录
+    async login(username, password) {
+        try {
+            // 从GitHub加载用户数据
+            const usersData = await this.githubStorage.loadUsersData();
+            const userData = usersData[username];
+
+            if (!userData) {
+                throw new Error('用户名不存在');
+            }
+
+            // 验证密码
+            if (!this.verifyPassword(password, userData.passwordHash)) {
+                throw new Error('密码错误');
+            }
+
+            // 更新最后登录时间
+            userData.lastLoginAt = new Date().toISOString();
+
+            // 保存更新后的用户数据
+            await this.githubStorage.saveUserData(username, userData);
+
+            // 设置当前用户会话
+            this.currentUser = {
+                username: username,
+                data: userData
+            };
+
+            // 生成会话令牌
+            this.sessionToken = Date.now().toString();
+
+            // 保存会话到本地存储
+            this.saveSession();
+
+            console.log('登录成功:', username);
+            return { success: true, message: '登录成功！' };
+
+        } catch (error) {
+            console.error('登录失败:', error);
+            return { success: false, message: error.message };
+        }
+    }
+
+    // 用户登出
+    logout() {
+        this.currentUser = null;
+        this.sessionToken = null;
+        localStorage.removeItem('coinTrackerSession');
+        console.log('用户已登出');
+    }
+
+    // 检查是否已登录
+    isLoggedIn() {
+        return this.currentUser !== null && this.sessionToken !== null;
+    }
+
+    // 获取当前用户名
+    getCurrentUsername() {
+        return this.currentUser ? this.currentUser.username : null;
+    }
+
+    // 获取当前用户数据
+    getCurrentUserData() {
+        return this.currentUser ? this.currentUser.data : null;
+    }
+
+    // 保存会话到本地存储
+    saveSession() {
+        if (this.currentUser && this.sessionToken) {
+            const sessionData = {
+                username: this.currentUser.username,
+                token: this.sessionToken,
+                loginTime: new Date().toISOString()
+            };
+            localStorage.setItem('coinTrackerSession', JSON.stringify(sessionData));
+        }
+    }
+
+    // 从本地存储加载会话
+    loadSession() {
+        try {
+            const sessionData = localStorage.getItem('coinTrackerSession');
+            if (sessionData) {
+                const session = JSON.parse(sessionData);
+                // 验证会话是否过期（24小时）
+                const loginTime = new Date(session.loginTime);
+                const now = new Date();
+                const hoursDiff = (now - loginTime) / (1000 * 60 * 60);
+
+                if (hoursDiff < 24) {
+                    this.sessionToken = session.token;
+                } else {
+                    localStorage.removeItem('coinTrackerSession');
+                }
+            }
+        } catch (error) {
+            console.error('加载会话失败:', error);
+            localStorage.removeItem('coinTrackerSession');
+        }
+    }
+
+    // 设置网络状态检测
+    setupNetworkDetection() {
+        window.addEventListener('online', () => {
+            console.log('网络连接已恢复');
+            this.processOfflineQueue();
+        });
+
+        window.addEventListener('offline', () => {
+            console.log('网络连接已断开');
+            this.syncStatus = 'offline';
+            this.updateSyncStatus();
+        });
+    }
+
+    // 处理离线队列
+    async processOfflineQueue() {
+        if (this.offlineQueue.length === 0 || !navigator.onLine) return;
+
+        this.syncStatus = 'syncing';
+        this.updateSyncStatus();
+
+        for (const operation of this.offlineQueue) {
+            try {
+                await this.executeSyncOperation(operation);
+            } catch (error) {
+                console.error('离线队列处理失败:', error);
+            }
+        }
+
+        this.offlineQueue = [];
+        this.syncStatus = 'success';
+        this.lastSyncTime = new Date();
+        this.updateSyncStatus();
+    }
+
+    // 执行同步操作
+    async executeSyncOperation(operation) {
+        switch (operation.type) {
+            case 'saveUserData':
+                await this.githubStorage.saveUserData(operation.username, operation.data);
+                break;
+        }
+    }
+
+    // 获取同步状态
+    getSyncStatus() {
+        return {
+            status: this.syncStatus,
+            lastSync: this.lastSyncTime,
+            queueLength: this.offlineQueue.length,
+            isOnline: navigator.onLine
+        };
+    }
+
+    // 更新同步状态显示
+    updateSyncStatus() {
+        const statusElement = document.getElementById('syncStatus');
+        if (statusElement) {
+            const status = this.getSyncStatus();
+            let statusText = '';
+            let statusClass = '';
+
+            switch (status.status) {
+                case 'idle':
+                    statusText = '已同步';
+                    statusClass = 'status-idle';
+                    break;
+                case 'syncing':
+                    statusText = '同步中...';
+                    statusClass = 'status-syncing';
+                    break;
+                case 'success':
+                    statusText = `最后同步: ${this.formatTime(status.lastSync)}`;
+                    statusClass = 'status-success';
+                    break;
+                case 'error':
+                    statusText = '同步失败';
+                    statusClass = 'status-error';
+                    break;
+                case 'offline':
+                    statusText = '离线模式';
+                    statusClass = 'status-offline';
+                    break;
+            }
+
+            statusElement.textContent = statusText;
+            statusElement.className = `sync-status ${statusClass}`;
+        }
+    }
+
+    // 格式化时间显示
+    formatTime(date) {
+        if (!date) return '从未';
+        const now = new Date();
+        const diff = now - new Date(date);
+        const minutes = Math.floor(diff / 60000);
+
+        if (minutes < 1) return '刚刚';
+        if (minutes < 60) return `${minutes}分钟前`;
+        if (minutes < 1440) return `${Math.floor(minutes / 60)}小时前`;
+        return new Date(date).toLocaleDateString('zh-CN');
     }
 }
 
