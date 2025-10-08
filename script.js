@@ -191,25 +191,8 @@ class CoinTracker {
 
         this.coinData.push(record);
 
-        // 更新连击数据
-        const today = this.getBeijingDate();
-        if (date === today) {
-            // 今天的记录
-            this.streakData.todayCompleted = true;
-            if (this.streakData.lastRecordDate === this.getYesterdayDate()) {
-                // 昨天也记录了，连击+1
-                this.streakData.currentStreak += 1;
-            } else {
-                // 昨天没记录，重置连击
-                this.streakData.currentStreak = 1;
-            }
-            this.streakData.lastRecordDate = today;
-
-            // 更新最长连击
-            if (this.streakData.currentStreak > this.streakData.longestStreak) {
-                this.streakData.longestStreak = this.streakData.currentStreak;
-            }
-        }
+        // 更新连击数据 - 修复：每天有记录就更新连击
+        this.updateStreakForDate(date);
 
         this.saveData();
         this.saveStreakData();
@@ -221,6 +204,43 @@ class CoinTracker {
     // 获取昨天的日期字符串（北京时间）
     getYesterdayDate() {
         return this.getBeijingYesterdayDate();
+    }
+
+    // 更新指定日期的连击数据
+    updateStreakForDate(date) {
+        const today = this.getBeijingDate();
+        
+        // 如果是今天的记录
+        if (date === today) {
+            this.streakData.todayCompleted = true;
+        }
+        
+        // 计算连击逻辑
+        if (this.streakData.lastRecordDate === null) {
+            // 第一次记录
+            this.streakData.currentStreak = 1;
+        } else {
+            // 检查是否是连续的一天
+            const lastRecordDate = new Date(this.streakData.lastRecordDate + 'T00:00:00+08:00');
+            const currentRecordDate = new Date(date + 'T00:00:00+08:00');
+            const dayDiff = Math.floor((currentRecordDate - lastRecordDate) / (1000 * 60 * 60 * 24));
+            
+            if (dayDiff === 1) {
+                // 连续的一天，连击+1
+                this.streakData.currentStreak += 1;
+            } else if (dayDiff > 1) {
+                // 不连续，重置连击
+                this.streakData.currentStreak = 1;
+            }
+            // dayDiff === 0 表示同一天，不改变连击
+        }
+        
+        this.streakData.lastRecordDate = date;
+        
+        // 更新最长连击
+        if (this.streakData.currentStreak > this.streakData.longestStreak) {
+            this.streakData.longestStreak = this.streakData.currentStreak;
+        }
     }
 
     // 更新今天的记录
@@ -237,17 +257,7 @@ class CoinTracker {
 
         // 更新连击数据（如果是今天的记录）
         if (lastRecord.date === today) {
-            this.streakData.todayCompleted = true;
-            if (this.streakData.lastRecordDate === this.getYesterdayDate()) {
-                this.streakData.currentStreak += 1;
-            } else {
-                this.streakData.currentStreak = 1;
-            }
-            this.streakData.lastRecordDate = today;
-
-            if (this.streakData.currentStreak > this.streakData.longestStreak) {
-                this.streakData.longestStreak = this.streakData.currentStreak;
-            }
+            this.updateStreakForDate(today);
         }
 
         this.saveData();
@@ -1173,7 +1183,9 @@ class CoinTracker {
         const noChallengeInfo = document.getElementById('noChallengeInfo');
 
         if (this.challengeData.target > 0) {
-            // 有挑战
+            // 有挑战 - 自动更新当前进度
+            this.challengeData.currentProgress = this.calculateTotal();
+            
             challengeInfo.style.display = 'block';
             noChallengeInfo.style.display = 'none';
 
