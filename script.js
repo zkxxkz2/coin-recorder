@@ -6,7 +6,6 @@ class CoinTracker {
         this.dailyChart = null;
         this.currentTheme = this.loadTheme();
         this.achievements = this.loadAchievements();
-        this.streakData = this.loadStreakData();
         this.challengeData = this.loadChallengeData();
         this.init();
     }
@@ -34,30 +33,6 @@ class CoinTracker {
         }
     }
 
-    // 获取昨天的北京时间日期字符串
-    getBeijingYesterdayDate() {
-        try {
-            // 方法1：使用Intl API计算昨天的北京时间
-            const now = new Date();
-            const yesterday = new Date(now.getTime() - (24 * 60 * 60 * 1000)); // 减去一天
-
-            const yesterdayBeijingDate = new Intl.DateTimeFormat('zh-CN', {
-                timeZone: 'Asia/Shanghai',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            }).format(yesterday).replace(/\//g, '-');
-
-            return yesterdayBeijingDate;
-        } catch (error) {
-            // 备用方法：手动计算昨天的北京时间
-            console.warn('计算昨天日期时Intl API不可用，使用备用方法:', error);
-            const today = this.getBeijingDate();
-            const date = new Date(today + 'T00:00:00+08:00');
-            date.setDate(date.getDate() - 1);
-            return date.toISOString().split('T')[0];
-        }
-    }
 
     // 初始化应用
     init() {
@@ -69,7 +44,6 @@ class CoinTracker {
         this.updateDisplay();
         this.renderHistory();
         this.updateAchievements();
-        this.updateStreakDisplay();
         this.updateChallengeDisplay();
         this.initCharts();
         this.checkAchievements(); // 检查是否有新成就可以解锁
@@ -116,11 +90,6 @@ class CoinTracker {
             this.toggleTheme();
         });
 
-        // 补签按钮
-        const makeupRecordBtn = document.getElementById('makeupRecordBtn');
-        makeupRecordBtn.addEventListener('click', () => {
-            this.makeupYesterdayRecord();
-        });
 
         // 挑战刷新按钮
         const refreshChallengeBtn = document.getElementById('refreshChallengeBtn');
@@ -169,7 +138,6 @@ class CoinTracker {
         this.updateDisplay();
         this.renderHistory();
         this.updateCharts();
-        this.updateStreakDisplay();
         this.updateChallengeDisplay();
         this.checkAchievements();
         this.showMessage('金币记录成功！', 'success');
@@ -191,57 +159,13 @@ class CoinTracker {
 
         this.coinData.push(record);
 
-        // 更新连击数据 - 修复：每天有记录就更新连击
-        this.updateStreakForDate(date);
-
         this.saveData();
-        this.saveStreakData();
 
         // 更新挑战显示
         this.updateChallengeDisplay();
     }
 
-    // 获取昨天的日期字符串（北京时间）
-    getYesterdayDate() {
-        return this.getBeijingYesterdayDate();
-    }
 
-    // 更新指定日期的连击数据
-    updateStreakForDate(date) {
-        const today = this.getBeijingDate();
-
-        // 如果是今天的记录
-        if (date === today) {
-            this.streakData.todayCompleted = true;
-        }
-
-        // 计算连击逻辑
-        if (this.streakData.lastRecordDate === null) {
-            // 第一次记录
-            this.streakData.currentStreak = 1;
-        } else {
-            // 检查是否是连续的一天
-            const lastRecordDate = new Date(this.streakData.lastRecordDate + 'T00:00:00+08:00');
-            const currentRecordDate = new Date(date + 'T00:00:00+08:00');
-            const dayDiff = Math.floor((currentRecordDate - lastRecordDate) / (1000 * 60 * 60 * 24));
-
-            if (dayDiff === 1) {
-                // 连续的一天，连击+1
-                this.streakData.currentStreak += 1;
-            } else if (dayDiff > 1) {
-                // 不连续，重置连击
-                this.streakData.currentStreak = 1;
-            }
-            // dayDiff === 0 表示同一天，不改变连击
-        }
-
-        this.streakData.lastRecordDate = date;
-
-        // 更新最长连击
-        if (this.streakData.currentStreak > this.streakData.longestStreak) {
-            this.streakData.longestStreak = this.streakData.currentStreak;
-        }
-    }
 
     // 更新今天的记录
     updateTodayRecord(coins, note) {
@@ -255,13 +179,7 @@ class CoinTracker {
         lastRecord.note = note;
         lastRecord.timestamp = Date.now();
 
-        // 更新连击数据（如果是今天的记录）
-        if (lastRecord.date === today) {
-            this.updateStreakForDate(today);
-        }
-
         this.saveData();
-        this.saveStreakData();
 
         // 更新挑战显示
         this.updateChallengeDisplay();
@@ -996,7 +914,7 @@ class CoinTracker {
 
     // 骨架屏相关方法
     showAllSkeletons() {
-        const skeletonIds = ['inputSkeleton', 'statsSkeleton', 'streakSkeleton', 'challengeSkeleton', 'achievementsSkeleton', 'chartSkeleton', 'historySkeleton'];
+        const skeletonIds = ['inputSkeleton', 'statsSkeleton', 'challengeSkeleton', 'achievementsSkeleton', 'chartSkeleton', 'historySkeleton'];
         skeletonIds.forEach(id => {
             const skeleton = document.getElementById(id);
             if (skeleton) {
@@ -1005,7 +923,7 @@ class CoinTracker {
         });
 
         // 隐藏内容区域
-        const contentIds = ['inputContent', 'statsContent', 'streakContent', 'challengeContent', 'achievementsContent', 'chartContent', 'historyContent'];
+        const contentIds = ['inputContent', 'statsContent', 'challengeContent', 'achievementsContent', 'chartContent', 'historyContent'];
         contentIds.forEach(id => {
             const content = document.getElementById(id);
             if (content) {
@@ -1015,7 +933,7 @@ class CoinTracker {
     }
 
     hideAllSkeletons() {
-        const skeletonIds = ['inputSkeleton', 'statsSkeleton', 'streakSkeleton', 'challengeSkeleton', 'achievementsSkeleton', 'chartSkeleton', 'historySkeleton'];
+        const skeletonIds = ['inputSkeleton', 'statsSkeleton', 'challengeSkeleton', 'achievementsSkeleton', 'chartSkeleton', 'historySkeleton'];
         skeletonIds.forEach(id => {
             const skeleton = document.getElementById(id);
             if (skeleton) {
@@ -1024,7 +942,7 @@ class CoinTracker {
         });
 
         // 显示内容区域
-        const contentIds = ['inputContent', 'statsContent', 'streakContent', 'challengeContent', 'achievementsContent', 'chartContent', 'historyContent'];
+        const contentIds = ['inputContent', 'statsContent', 'challengeContent', 'achievementsContent', 'chartContent', 'historyContent'];
         contentIds.forEach(id => {
             const content = document.getElementById(id);
             if (content) {
@@ -1033,128 +951,6 @@ class CoinTracker {
         });
     }
 
-    // 连击数据相关方法
-    loadStreakData() {
-        try {
-            const streakData = localStorage.getItem('coinTrackerStreak');
-            return streakData ? JSON.parse(streakData) : this.getDefaultStreakData();
-        } catch (error) {
-            console.error('加载连击数据失败:', error);
-            return this.getDefaultStreakData();
-        }
-    }
-
-    saveStreakData() {
-        try {
-            localStorage.setItem('coinTrackerStreak', JSON.stringify(this.streakData));
-        } catch (error) {
-            console.error('保存连击数据失败:', error);
-        }
-    }
-
-    getDefaultStreakData() {
-        return {
-            currentStreak: 0,
-            longestStreak: 0,
-            lastRecordDate: null,
-            todayCompleted: false
-        };
-    }
-
-    updateStreakDisplay() {
-        const today = this.getBeijingDate();
-
-        // 检查是否跨天
-        if (this.streakData.lastRecordDate !== null && this.streakData.lastRecordDate !== today) {
-            const yesterdayStr = this.getBeijingYesterdayDate();
-
-            // 检查昨天是否有记录
-            const hasYesterdayRecord = this.coinData.some(record => record.date === yesterdayStr);
-
-            if (!hasYesterdayRecord) {
-                // 昨天没记录，说明连击中断，重置连击为0
-                this.streakData.currentStreak = 0;
-            }
-            // 如果昨天有记录，连击保持不变，等今天记录时再更新
-
-            // 重置今天的完成状态，为新的一天做准备
-            this.streakData.todayCompleted = false;
-        }
-
-        // 更新显示
-        document.getElementById('currentStreak').textContent = `${this.streakData.currentStreak}天`;
-        document.getElementById('longestStreak').textContent = `${this.streakData.longestStreak}天`;
-        document.getElementById('todayComplete').textContent = this.streakData.todayCompleted ? '已完成' : '未完成';
-
-        // 设置今日完成状态的颜色
-        const todayCompleteElement = document.getElementById('todayComplete');
-        todayCompleteElement.className = 'streak-value';
-        if (this.streakData.todayCompleted) {
-            todayCompleteElement.classList.add('completed');
-        }
-
-        // 显示/隐藏补签按钮
-        const makeupBtn = document.getElementById('makeupRecordBtn');
-        const yesterdayStr = this.getBeijingYesterdayDate();
-
-        // 如果昨天没记录且今天还没记录且有历史记录，显示补签按钮
-        if (!this.streakData.todayCompleted && this.coinData.length > 0) {
-            const lastRecord = this.coinData[this.coinData.length - 1];
-            if (lastRecord.date !== today && lastRecord.date !== yesterdayStr) {
-                makeupBtn.style.display = 'block';
-            } else {
-                makeupBtn.style.display = 'none';
-            }
-        } else {
-            makeupBtn.style.display = 'none';
-        }
-
-        this.saveStreakData();
-    }
-
-    makeupYesterdayRecord() {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        const yesterdayStr = this.getBeijingYesterdayDate();
-
-        // 检查昨天是否已经有记录
-        const hasYesterdayRecord = this.coinData.some(record => record.date === yesterdayStr);
-
-        if (hasYesterdayRecord) {
-            this.showMessage('昨天已经有记录了！', 'warning');
-            return;
-        }
-
-        // 提示用户输入昨天的金币数量
-        const coins = prompt('请输入昨天的金币数量：');
-        if (coins === null) return;
-
-        const coinAmount = parseInt(coins);
-        if (isNaN(coinAmount) || coinAmount < 0) {
-            this.showMessage('请输入有效的金币数量', 'error');
-            return;
-        }
-
-        // 创建昨天的记录
-        this.createNewRecord(coinAmount, '补签记录', yesterdayStr);
-
-        // 更新连击数据
-        this.streakData.currentStreak += 1;
-        if (this.streakData.currentStreak > this.streakData.longestStreak) {
-            this.streakData.longestStreak = this.streakData.currentStreak;
-        }
-        this.streakData.lastRecordDate = yesterdayStr;
-
-        // 更新显示
-        this.updateDisplay();
-        this.renderHistory();
-        this.updateCharts();
-        this.updateStreakDisplay();
-        this.updateChallengeDisplay();
-        this.checkAchievements();
-
-        this.showMessage('补签成功！连击已恢复', 'success');
-    }
 
     // 挑战数据相关方法
     loadChallengeData() {
@@ -1558,9 +1354,6 @@ class CoinTracker {
     getDefaultAchievements() {
         return {
             first_record: { unlocked: false, unlockedDate: null },
-            week_streak: { unlocked: false, unlockedDate: null },
-            month_streak: { unlocked: false, unlockedDate: null },
-            hundred_days: { unlocked: false, unlockedDate: null },
             thousand_coins: { unlocked: false, unlockedDate: null },
             ten_thousand: { unlocked: false, unlockedDate: null },
             twenty_thousand: { unlocked: false, unlockedDate: null },
@@ -1574,7 +1367,6 @@ class CoinTracker {
         const newUnlocked = [];
         const totalCoins = this.calculateTotal();
         const recordDays = this.coinData.length;
-        const currentStreak = this.calculateCurrentStreak();
 
         // 检查首次记录成就
         if (recordDays >= 1 && !this.achievements.first_record.unlocked) {
@@ -1582,23 +1374,7 @@ class CoinTracker {
             newUnlocked.push('first_record');
         }
 
-        // 检查连续记录成就
-        if (currentStreak >= 7 && !this.achievements.week_streak.unlocked) {
-            this.unlockAchievement('week_streak');
-            newUnlocked.push('week_streak');
-        }
-
-        if (currentStreak >= 30 && !this.achievements.month_streak.unlocked) {
-            this.unlockAchievement('month_streak');
-            newUnlocked.push('month_streak');
-        }
-
-        if (currentStreak >= 100 && !this.achievements.hundred_days.unlocked) {
-            this.unlockAchievement('hundred_days');
-            newUnlocked.push('hundred_days');
-        }
-
-        // 检查金币成就
+        // 检查金币里程碑成就
         if (totalCoins >= 1000 && !this.achievements.thousand_coins.unlocked) {
             this.unlockAchievement('thousand_coins');
             newUnlocked.push('thousand_coins');
@@ -1639,30 +1415,6 @@ class CoinTracker {
         }
     }
 
-    calculateCurrentStreak() {
-        if (this.coinData.length === 0) return 0;
-
-        let streak = 1;
-        const today = this.getBeijingDate();
-
-        for (let i = this.coinData.length - 1; i > 0; i--) {
-            // 将日期字符串转换为日期对象，确保正确处理时区
-            const currentDateStr = this.coinData[i].date + 'T00:00:00+08:00'; // 北京时间
-            const prevDateStr = this.coinData[i - 1].date + 'T00:00:00+08:00'; // 北京时间
-
-            const currentDate = new Date(currentDateStr);
-            const prevDate = new Date(prevDateStr);
-            const dayDiff = Math.floor((currentDate - prevDate) / (1000 * 60 * 60 * 24));
-
-            if (dayDiff === 1) {
-                streak++;
-            } else {
-                break;
-            }
-        }
-
-        return streak;
-    }
 
     unlockAchievement(achievementId) {
         this.achievements[achievementId] = {
@@ -1675,9 +1427,6 @@ class CoinTracker {
     showAchievementUnlock(achievementId) {
         const achievementNames = {
             first_record: '首次记录',
-            week_streak: '坚持7天',
-            month_streak: '坚持30天',
-            hundred_days: '百日坚持',
             thousand_coins: '千金富翁',
             ten_thousand: '万元户',
             twenty_thousand: '两万富翁',
@@ -1764,9 +1513,6 @@ class CoinTracker {
 
         const achievementNames = {
             first_record: '首次记录',
-            week_streak: '坚持7天',
-            month_streak: '坚持30天',
-            hundred_days: '百日坚持',
             thousand_coins: '千金富翁',
             ten_thousand: '万元户',
             twenty_thousand: '两万富翁',
