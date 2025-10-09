@@ -1160,7 +1160,27 @@ class CoinTracker {
     loadChallengeData() {
         try {
             const challengeData = localStorage.getItem('coinTrackerChallenge');
-            return challengeData ? JSON.parse(challengeData) : this.getDefaultChallengeData();
+            if (challengeData) {
+                const parsed = JSON.parse(challengeData);
+                // 如果是单个对象，转换为数组格式
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                    // 如果是旧的单个挑战格式，转换为数组
+                    if (parsed.target > 0) {
+                        return [{
+                            id: 'legacy_' + Date.now(),
+                            target: parsed.target,
+                            startDate: parsed.startDate,
+                            endDate: parsed.endDate,
+                            currentProgress: parsed.currentProgress,
+                            completed: parsed.completed,
+                            completedDate: parsed.completedDate,
+                            createdAt: parsed.startDate || new Date().toISOString()
+                        }];
+                    }
+                }
+                return parsed || [];
+            }
+            return this.getDefaultChallengeData();
         } catch (error) {
             console.error('加载挑战数据失败:', error);
             return this.getDefaultChallengeData();
@@ -1254,8 +1274,8 @@ class CoinTracker {
                         ${isExpired ? ' ⏰' : ''}
                     </h4>
                     <div class="challenge-card-actions">
-                        <button class="challenge-btn small refresh-btn" onclick="coinTracker.refreshChallengeProgress('${challenge.id}')" title="刷新进度">🔄</button>
-                        <button class="challenge-btn small delete-btn" onclick="coinTracker.deleteChallenge('${challenge.id}')" title="删除挑战">🗑️</button>
+                        <button class="challenge-btn small refresh-btn challenge-refresh-btn" data-challenge-id="${challenge.id}" title="刷新进度">🔄</button>
+                        <button class="challenge-btn small delete-btn challenge-delete-btn" data-challenge-id="${challenge.id}" title="删除挑战">🗑️</button>
                     </div>
                 </div>
                 <div class="challenge-card-content">
@@ -1306,6 +1326,28 @@ class CoinTracker {
 
         document.getElementById('refreshAllChallengesBtn').addEventListener('click', () => {
             this.refreshAllChallengeProgress();
+        });
+
+        // 绑定挑战卡片的事件处理器
+        challenges.forEach(challenge => {
+            const refreshBtn = container.querySelector(`.challenge-refresh-btn[data-challenge-id="${challenge.id}"]`);
+            const deleteBtn = container.querySelector(`.challenge-delete-btn[data-challenge-id="${challenge.id}"]`);
+
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => {
+                    this.refreshChallengeProgress(challenge.id);
+                });
+            }
+
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', () => {
+                    if (confirm('确定要删除这个挑战吗？')) {
+                        this.deleteChallenge(challenge.id);
+                        this.updateChallengeDisplay();
+                        this.showMessage('挑战已删除！', 'success');
+                    }
+                });
+            }
         });
     }
 
@@ -1367,7 +1409,9 @@ class CoinTracker {
 
         const modal = document.createElement('div');
         modal.className = 'challenge-modal';
-        modal.innerHTML = `
+
+        // 构建HTML内容
+        let modalHTML = `
             <div class="challenge-modal-backdrop">
                 <div class="challenge-modal-content">
                     <button class="challenge-modal-close">&times;</button>
@@ -1382,15 +1426,21 @@ class CoinTracker {
                             <label for="challengeEndDateInput">截止日期（可选）：</label>
                             <input type="date" id="challengeEndDateInput" value="${challenge && challenge.endDate ? new Date(challenge.endDate).toISOString().split('T')[0] : ''}">
                         </div>
-                        ${isEditing ? `
-                            <div class="challenge-form-group">
-                                <label>挑战进度：</label>
-                                <div class="challenge-progress-preview">
-                                    <span>${challenge.currentProgress} / ${challenge.target}</span>
-                                    <span>(${((challenge.currentProgress / challenge.target) * 100).toFixed(1)}%)</span>
-                                </div>
+        `;
+
+        if (isEditing) {
+            modalHTML += `
+                        <div class="challenge-form-group">
+                            <label>挑战进度：</label>
+                            <div class="challenge-progress-preview">
+                                <span>${challenge.currentProgress} / ${challenge.target}</span>
+                                <span>(${(challenge.currentProgress / challenge.target * 100).toFixed(1)}%)</span>
                             </div>
-                        ` : ''}
+                        </div>
+            `;
+        }
+
+        modalHTML += `
                         <div class="challenge-form-actions">
                             <button id="cancelChallengeBtn" class="challenge-cancel-btn">取消</button>
                             <button id="confirmChallengeBtn" class="challenge-confirm-btn">${isEditing ? '更新' : '创建'}</button>
@@ -1400,6 +1450,7 @@ class CoinTracker {
             </div>
         `;
 
+        modal.innerHTML = modalHTML;
         document.body.appendChild(modal);
 
         // 添加事件监听器
