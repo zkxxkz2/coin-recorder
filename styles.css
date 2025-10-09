@@ -632,6 +632,48 @@ body {
     margin: 0 auto;
 }
 
+.no-challenge-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--card-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.no-challenge-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+    opacity: 0.6;
+}
+
+.no-challenge-state h3 {
+    margin: 0 0 10px 0;
+    color: var(--text-color);
+    font-size: 1.2rem;
+}
+
+.no-challenge-state p {
+    margin: 0 0 25px 0;
+    color: var(--text-secondary);
+}
+
+.challenge-btn.primary {
+    background: linear-gradient(135deg, var(--accent-color) 0%, #27ae60 100%);
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.challenge-btn.primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
+}
+
 /* 多挑战卡片样式 */
 .challenges-grid {
     display: grid;

@@ -1355,16 +1355,11 @@ class CoinTracker {
     renderNoChallenge() {
         const container = document.querySelector('.challenge-container');
         container.innerHTML = `
-            <div class="challenge-current">
-                <div class="challenge-header">
-                    <h3>个人挑战</h3>
-                    <div class="challenge-controls">
-                        <button id="setChallengeBtn" class="challenge-btn">设定挑战</button>
-                    </div>
-                </div>
-                <div class="no-challenge" id="noChallengeInfo">
-                    <p>还没有设定挑战，快来设定一个吧！</p>
-                </div>
+            <div class="no-challenge-state">
+                <div class="no-challenge-icon">🎯</div>
+                <h3>还没有设定挑战</h3>
+                <p>快来设定一个攒钱目标吧！</p>
+                <button id="setChallengeBtn" class="challenge-btn primary">设定挑战</button>
             </div>
         `;
 
