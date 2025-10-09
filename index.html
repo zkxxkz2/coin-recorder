@@ -125,6 +125,36 @@
             </div>
         </section>
 
+        <!-- 连击统计区域 -->
+        <section class="streak-section">
+            <div class="skeleton" id="streakSkeleton" style="display: none;">
+                <div class="skeleton-header"></div>
+                <div class="skeleton-streak-container">
+                    <div class="skeleton-streak-item"></div>
+                    <div class="skeleton-streak-item"></div>
+                    <div class="skeleton-streak-item"></div>
+                    <div class="skeleton-streak-button"></div>
+                </div>
+            </div>
+            <div class="section-content" id="streakContent">
+                <h2>连击统计</h2>
+                <div class="streak-container">
+                    <div class="streak-item">
+                        <span class="streak-label">当前连击：</span>
+                        <span class="streak-value" id="currentStreak">0天</span>
+                    </div>
+                    <div class="streak-item">
+                        <span class="streak-label">最长连击：</span>
+                        <span class="streak-value" id="longestStreak">0天</span>
+                    </div>
+                    <div class="streak-item">
+                        <span class="streak-label">今日完成：</span>
+                        <span class="streak-value" id="todayComplete">未完成</span>
+                    </div>
+                    <button id="makeupRecordBtn" class="makeup-btn" style="display: none;">补签昨日</button>
+                </div>
+            </div>
+        </section>
 
         <!-- 个人挑战区域 -->
         <section class="challenge-section">
@@ -139,35 +169,7 @@
             <div class="section-content" id="challengeContent">
                 <h2>个人挑战</h2>
                 <div class="challenge-container">
-                    <div class="challenge-current">
-                        <div class="challenge-header">
-                            <h3>当前挑战</h3>
-                            <div class="challenge-controls">
-                                <button id="refreshChallengeBtn" class="challenge-btn refresh-btn" title="刷新挑战进度">🔄 刷新</button>
-                                <button id="setChallengeBtn" class="challenge-btn">设定挑战</button>
-                            </div>
-                        </div>
-                        <div class="challenge-info" id="currentChallengeInfo" style="display: none;">
-                            <div class="challenge-detail">
-                                <span class="challenge-label">目标金币：</span>
-                                <span class="challenge-value" id="challengeTarget">0</span>
-                            </div>
-                            <div class="challenge-detail">
-                                <span class="challenge-label">当前进度：</span>
-                                <span class="challenge-value" id="challengeProgress">0</span>
-                            </div>
-                            <div class="challenge-detail">
-                                <span class="challenge-label">完成百分比：</span>
-                                <span class="challenge-value" id="challengePercentage">0%</span>
-                            </div>
-                            <div class="challenge-progress-bar">
-                                <div class="challenge-progress-fill" id="challengeProgressFill" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        <div class="no-challenge" id="noChallengeInfo">
-                            <p>还没有设定挑战，快来设定一个吧！</p>
-                        </div>
-                    </div>
+                    <!-- 挑战内容将由JavaScript动态生成 -->
                 </div>
             </div>
         </section>
@@ -199,6 +201,30 @@
                             <div class="achievement-desc">完成第一次金币记录</div>
                         </div>
                         <div class="achievement-status" id="first_record_status">🔒</div>
+                    </div>
+                    <div class="achievement-item" data-achievement="week_streak">
+                        <div class="achievement-icon">🔥</div>
+                        <div class="achievement-info">
+                            <div class="achievement-title">坚持7天</div>
+                            <div class="achievement-desc">连续记录7天金币</div>
+                        </div>
+                        <div class="achievement-status" id="week_streak_status">🔒</div>
+                    </div>
+                    <div class="achievement-item" data-achievement="month_streak">
+                        <div class="achievement-icon">📅</div>
+                        <div class="achievement-info">
+                            <div class="achievement-title">坚持30天</div>
+                            <div class="achievement-desc">连续记录30天金币</div>
+                        </div>
+                        <div class="achievement-status" id="month_streak_status">🔒</div>
+                    </div>
+                    <div class="achievement-item" data-achievement="hundred_days">
+                        <div class="achievement-icon">💯</div>
+                        <div class="achievement-info">
+                            <div class="achievement-title">百日坚持</div>
+                            <div class="achievement-desc">连续记录100天金币</div>
+                        </div>
+                        <div class="achievement-status" id="hundred_days_status">🔒</div>
                     </div>
                     <div class="achievement-item" data-achievement="thousand_coins">
                         <div class="achievement-icon">💰</div>
@@ -319,7 +345,7 @@
         <!-- 底部信息 -->
         <footer class="footer">
             <p>&copy; 2025 金币记录器</p>
-            <p class="version-info">版本 v1.4.0</p>
+            <p class="version-info">版本 v1.3.0</p>
         </footer>
     </div>
 
