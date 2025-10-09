@@ -1756,8 +1756,6 @@ class CoinTracker {
             week_streak: { unlocked: false, unlockedDate: null },
             month_streak: { unlocked: false, unlockedDate: null },
             hundred_days: { unlocked: false, unlockedDate: null },
-            half_year: { unlocked: false, unlockedDate: null },
-            year_streak: { unlocked: false, unlockedDate: null },
 
             // 金币里程碑成就
             thousand_coins: { unlocked: false, unlockedDate: null },
@@ -1765,22 +1763,7 @@ class CoinTracker {
             twenty_thousand: { unlocked: false, unlockedDate: null },
             thirty_thousand: { unlocked: false, unlockedDate: null },
             forty_thousand: { unlocked: false, unlockedDate: null },
-            fifty_thousand: { unlocked: false, unlockedDate: null },
-            hundred_thousand: { unlocked: false, unlockedDate: null },
-            million_coins: { unlocked: false, unlockedDate: null },
-
-            // 记录天数成就
-            fifty_days: { unlocked: false, unlockedDate: null },
-            hundred_days_record: { unlocked: false, unlockedDate: null },
-            two_hundred_days: { unlocked: false, unlockedDate: null },
-            three_hundred_days: { unlocked: false, unlockedDate: null },
-            five_hundred_days: { unlocked: false, unlockedDate: null },
-            thousand_days: { unlocked: false, unlockedDate: null },
-
-            // 特殊成就
-            perfect_month: { unlocked: false, unlockedDate: null },
-            no_miss_week: { unlocked: false, unlockedDate: null },
-            comeback_king: { unlocked: false, unlockedDate: null }
+            fifty_thousand: { unlocked: false, unlockedDate: null }
         };
     }
 
@@ -1812,16 +1795,6 @@ class CoinTracker {
             newUnlocked.push('hundred_days');
         }
 
-        if (currentStreak >= 180 && !this.achievements.half_year.unlocked) {
-            this.unlockAchievement('half_year');
-            newUnlocked.push('half_year');
-        }
-
-        if (currentStreak >= 365 && !this.achievements.year_streak.unlocked) {
-            this.unlockAchievement('year_streak');
-            newUnlocked.push('year_streak');
-        }
-
         // 检查金币里程碑成就
         if (totalCoins >= 1000 && !this.achievements.thousand_coins.unlocked) {
             this.unlockAchievement('thousand_coins');
@@ -1851,63 +1824,6 @@ class CoinTracker {
         if (totalCoins >= 50000 && !this.achievements.fifty_thousand.unlocked) {
             this.unlockAchievement('fifty_thousand');
             newUnlocked.push('fifty_thousand');
-        }
-
-        if (totalCoins >= 100000 && !this.achievements.hundred_thousand.unlocked) {
-            this.unlockAchievement('hundred_thousand');
-            newUnlocked.push('hundred_thousand');
-        }
-
-        if (totalCoins >= 1000000 && !this.achievements.million_coins.unlocked) {
-            this.unlockAchievement('million_coins');
-            newUnlocked.push('million_coins');
-        }
-
-        // 检查记录天数成就
-        if (recordDays >= 50 && !this.achievements.fifty_days.unlocked) {
-            this.unlockAchievement('fifty_days');
-            newUnlocked.push('fifty_days');
-        }
-
-        if (recordDays >= 100 && !this.achievements.hundred_days_record.unlocked) {
-            this.unlockAchievement('hundred_days_record');
-            newUnlocked.push('hundred_days_record');
-        }
-
-        if (recordDays >= 200 && !this.achievements.two_hundred_days.unlocked) {
-            this.unlockAchievement('two_hundred_days');
-            newUnlocked.push('two_hundred_days');
-        }
-
-        if (recordDays >= 300 && !this.achievements.three_hundred_days.unlocked) {
-            this.unlockAchievement('three_hundred_days');
-            newUnlocked.push('three_hundred_days');
-        }
-
-        if (recordDays >= 500 && !this.achievements.five_hundred_days.unlocked) {
-            this.unlockAchievement('five_hundred_days');
-            newUnlocked.push('five_hundred_days');
-        }
-
-        if (recordDays >= 1000 && !this.achievements.thousand_days.unlocked) {
-            this.unlockAchievement('thousand_days');
-            newUnlocked.push('thousand_days');
-        }
-
-        // 检查特殊成就
-        if (this.checkPerfectMonth() && !this.achievements.perfect_month.unlocked) {
-            this.unlockAchievement('perfect_month');
-            newUnlocked.push('perfect_month');
-        }
-
-        if (this.checkNoMissWeek() && !this.achievements.no_miss_week.unlocked) {
-            this.unlockAchievement('no_miss_week');
-            newUnlocked.push('no_miss_week');
-        }
-
-        if (this.checkComebackKing() && !this.achievements.comeback_king.unlocked) {
-            this.unlockAchievement('comeback_king');
-            newUnlocked.push('comeback_king');
         }
 
         // 显示成就解锁提示
@@ -1993,8 +1909,6 @@ class CoinTracker {
             week_streak: '坚持7天',
             month_streak: '坚持30天',
             hundred_days: '百日坚持',
-            half_year: '半年坚持',
-            year_streak: '年度坚持',
 
             // 金币里程碑成就
             thousand_coins: '千金富翁',
@@ -2002,22 +1916,7 @@ class CoinTracker {
             twenty_thousand: '两万富翁',
             thirty_thousand: '三万富翁',
             forty_thousand: '四万富翁',
-            fifty_thousand: '五万富翁',
-            hundred_thousand: '十万富翁',
-            million_coins: '百万富翁',
-
-            // 记录天数成就
-            fifty_days: '坚持50天',
-            hundred_days_record: '坚持100天',
-            two_hundred_days: '坚持200天',
-            three_hundred_days: '坚持300天',
-            five_hundred_days: '坚持500天',
-            thousand_days: '坚持1000天',
-
-            // 特殊成就
-            perfect_month: '完美月',
-            no_miss_week: '无缺席周',
-            comeback_king: '王者归来'
+            fifty_thousand: '五万富翁'
         };
 
         // 创建成就解锁动画元素
@@ -2104,8 +2003,6 @@ class CoinTracker {
             week_streak: '坚持7天',
             month_streak: '坚持30天',
             hundred_days: '百日坚持',
-            half_year: '半年坚持',
-            year_streak: '年度坚持',
 
             // 金币里程碑成就
             thousand_coins: '千金富翁',
@@ -2113,22 +2010,7 @@ class CoinTracker {
             twenty_thousand: '两万富翁',
             thirty_thousand: '三万富翁',
             forty_thousand: '四万富翁',
-            fifty_thousand: '五万富翁',
-            hundred_thousand: '十万富翁',
-            million_coins: '百万富翁',
-
-            // 记录天数成就
-            fifty_days: '坚持50天',
-            hundred_days_record: '坚持100天',
-            two_hundred_days: '坚持200天',
-            three_hundred_days: '坚持300天',
-            five_hundred_days: '坚持500天',
-            thousand_days: '坚持1000天',
-
-            // 特殊成就
-            perfect_month: '完美月',
-            no_miss_week: '无缺席周',
-            comeback_king: '王者归来'
+            fifty_thousand: '五万富翁'
         };
 
         const unlockDate = new Date(achievement.unlockedDate);
