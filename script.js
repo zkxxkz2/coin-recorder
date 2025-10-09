@@ -1160,7 +1160,27 @@ class CoinTracker {
     loadChallengeData() {
         try {
             const challengeData = localStorage.getItem('coinTrackerChallenge');
-            return challengeData ? JSON.parse(challengeData) : this.getDefaultChallengeData();
+            if (challengeData) {
+                const parsed = JSON.parse(challengeData);
+                // 如果是单个对象，转换为数组格式
+                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                    // 如果是旧的单个挑战格式，转换为数组
+                    if (parsed.target > 0) {
+                        return [{
+                            id: 'legacy_' + Date.now(),
+                            target: parsed.target,
+                            startDate: parsed.startDate,
+                            endDate: parsed.endDate,
+                            currentProgress: parsed.currentProgress,
+                            completed: parsed.completed,
+                            completedDate: parsed.completedDate,
+                            createdAt: parsed.startDate || new Date().toISOString()
+                        }];
+                    }
+                }
+                return parsed || [];
+            }
+            return this.getDefaultChallengeData();
         } catch (error) {
             console.error('加载挑战数据失败:', error);
             return this.getDefaultChallengeData();
@@ -1176,92 +1196,256 @@ class CoinTracker {
     }
 
     getDefaultChallengeData() {
-        return {
-            target: 0,
-            startDate: null,
-            endDate: null,
-            currentProgress: 0,
+        return []; // 改为数组，存储多个挑战
+    }
+
+    // 创建新挑战
+    createChallenge(target, endDate = null) {
+        const today = new Date();
+        const challenge = {
+            id: Date.now().toString(), // 唯一ID
+            target: target,
+            startDate: today.toISOString(),
+            endDate: endDate ? new Date(endDate).toISOString() : null,
+            currentProgress: this.calculateTotal(),
             completed: false,
-            completedDate: null
+            completedDate: null,
+            createdAt: today.toISOString()
         };
+
+        this.challengeData.push(challenge);
+        return challenge.id;
+    }
+
+    // 删除挑战
+    deleteChallenge(challengeId) {
+        const index = this.challengeData.findIndex(c => c.id === challengeId);
+        if (index !== -1) {
+            this.challengeData.splice(index, 1);
+            return true;
+        }
+        return false;
+    }
+
+    // 获取挑战
+    getChallenge(challengeId) {
+        return this.challengeData.find(c => c.id === challengeId);
+    }
+
+    // 获取所有活跃挑战（未完成或最近完成）
+    getActiveChallenges() {
+        return this.challengeData.filter(challenge => {
+            // 如果挑战有截止日期且已过期但未完成，则视为非活跃
+            if (challenge.endDate && !challenge.completed) {
+                const endDate = new Date(challenge.endDate);
+                return endDate >= new Date(); // 只返回未过期或已完成的挑战
+            }
+            return true; // 无截止日期的挑战始终活跃
+        });
     }
 
     updateChallengeDisplay() {
-        const challengeInfo = document.getElementById('currentChallengeInfo');
-        const noChallengeInfo = document.getElementById('noChallengeInfo');
+        const challengeContainer = document.querySelector('.challenge-container');
+        const activeChallenges = this.getActiveChallenges();
 
-        if (this.challengeData.target > 0) {
-            // 有挑战 - 自动更新当前进度
-            this.challengeData.currentProgress = this.calculateTotal();
-            
-            challengeInfo.style.display = 'block';
-            noChallengeInfo.style.display = 'none';
-
-            document.getElementById('challengeTarget').textContent = this.challengeData.target;
-            document.getElementById('challengeProgress').textContent = this.challengeData.currentProgress;
-
-            const percentage = Math.min((this.challengeData.currentProgress / this.challengeData.target) * 100, 100);
-            document.getElementById('challengePercentage').textContent = `${percentage.toFixed(2)}%`;
-
-            const progressFill = document.getElementById('challengeProgressFill');
-            progressFill.style.width = `${percentage}%`;
-
-            // 根据进度改变颜色
-            if (percentage >= 100) {
-                progressFill.style.background = 'linear-gradient(90deg, #27ae60 0%, #2ecc71 100%)';
-            } else if (percentage >= 75) {
-                progressFill.style.background = 'linear-gradient(90deg, #f39c12 0%, #e67e22 100%)';
-            } else {
-                progressFill.style.background = 'linear-gradient(90deg, var(--accent-color) 0%, #27ae60 100%)';
-            }
+        if (activeChallenges.length > 0) {
+            // 有挑战 - 显示所有挑战
+            this.renderMultipleChallenges(activeChallenges);
         } else {
-            // 没有挑战
-            challengeInfo.style.display = 'none';
-            noChallengeInfo.style.display = 'block';
+            // 没有挑战 - 显示空状态
+            this.renderNoChallenge();
         }
 
         this.saveChallengeData();
     }
 
-    // 刷新挑战显示（手动刷新用）
-    refreshChallengeDisplay() {
-        if (this.challengeData.target > 0) {
-            // 重新计算当前进度
-            this.challengeData.currentProgress = this.calculateTotal();
+    // 渲染单个挑战卡片
+    renderChallengeCard(challenge) {
+        const percentage = Math.min((challenge.currentProgress / challenge.target) * 100, 100);
+        const isCompleted = percentage >= 100;
+        const isExpired = challenge.endDate && new Date(challenge.endDate) < new Date() && !isCompleted;
 
-            // 更新显示
+        return `
+            <div class="challenge-card ${isCompleted ? 'completed' : ''} ${isExpired ? 'expired' : ''}" data-challenge-id="${challenge.id}">
+                <div class="challenge-card-header">
+                    <h4 class="challenge-card-title">
+                        🎯 目标 ${challenge.target} 金币
+                        ${isCompleted ? ' ✅' : ''}
+                        ${isExpired ? ' ⏰' : ''}
+                    </h4>
+                    <div class="challenge-card-actions">
+                        <button class="challenge-btn small refresh-btn challenge-refresh-btn" data-challenge-id="${challenge.id}" title="刷新进度">🔄</button>
+                        <button class="challenge-btn small delete-btn challenge-delete-btn" data-challenge-id="${challenge.id}" title="删除挑战">🗑️</button>
+                    </div>
+                </div>
+                <div class="challenge-card-content">
+                    <div class="challenge-card-progress">
+                        <div class="challenge-card-detail">
+                            <span class="challenge-card-label">当前进度：</span>
+                            <span class="challenge-card-value">${challenge.currentProgress} / ${challenge.target}</span>
+                        </div>
+                        <div class="challenge-card-detail">
+                            <span class="challenge-card-label">完成百分比：</span>
+                            <span class="challenge-card-value">${percentage.toFixed(1)}%</span>
+                        </div>
+                        ${challenge.endDate ? `
+                            <div class="challenge-card-detail">
+                                <span class="challenge-card-label">截止日期：</span>
+                                <span class="challenge-card-value">${new Date(challenge.endDate).toLocaleDateString('zh-CN')}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="challenge-card-progress-bar">
+                        <div class="challenge-card-progress-fill" style="width: ${percentage}%"></div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // 渲染多个挑战
+    renderMultipleChallenges(challenges) {
+        const container = document.querySelector('.challenge-container');
+        container.innerHTML = `
+            <div class="challenge-header">
+                <h3>我的挑战</h3>
+                <div class="challenge-controls">
+                    <button id="refreshAllChallengesBtn" class="challenge-btn refresh-btn" title="刷新所有挑战进度">🔄 刷新全部</button>
+                    <button id="addChallengeBtn" class="challenge-btn">➕ 新建挑战</button>
+                </div>
+            </div>
+            <div class="challenges-grid" id="challengesGrid">
+                ${challenges.map(challenge => this.renderChallengeCard(challenge)).join('')}
+            </div>
+        `;
+
+        // 绑定事件
+        document.getElementById('addChallengeBtn').addEventListener('click', () => {
+            this.showChallengeModal();
+        });
+
+        document.getElementById('refreshAllChallengesBtn').addEventListener('click', () => {
+            this.refreshAllChallengeProgress();
+        });
+
+        // 绑定挑战卡片的事件处理器
+        challenges.forEach(challenge => {
+            const refreshBtn = container.querySelector(`.challenge-refresh-btn[data-challenge-id="${challenge.id}"]`);
+            const deleteBtn = container.querySelector(`.challenge-delete-btn[data-challenge-id="${challenge.id}"]`);
+
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => {
+                    this.refreshChallengeProgress(challenge.id);
+                });
+            }
+
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', () => {
+                    if (confirm('确定要删除这个挑战吗？')) {
+                        this.deleteChallenge(challenge.id);
+                        this.updateChallengeDisplay();
+                        this.showMessage('挑战已删除！', 'success');
+                    }
+                });
+            }
+        });
+    }
+
+    // 渲染无挑战状态
+    renderNoChallenge() {
+        const container = document.querySelector('.challenge-container');
+        container.innerHTML = `
+            <div class="no-challenge-state">
+                <div class="no-challenge-icon">🎯</div>
+                <h3>还没有设定挑战</h3>
+                <p>快来设定一个攒钱目标吧！</p>
+                <button id="setChallengeBtn" class="challenge-btn primary">设定挑战</button>
+            </div>
+        `;
+
+        // 绑定事件
+        document.getElementById('setChallengeBtn').addEventListener('click', () => {
+            this.showChallengeModal();
+        });
+    }
+
+    // 刷新单个挑战进度
+    refreshChallengeProgress(challengeId) {
+        const challenge = this.getChallenge(challengeId);
+        if (challenge) {
+            challenge.currentProgress = this.calculateTotal();
+            this.checkChallengeCompletion(challenge);
             this.updateChallengeDisplay();
-
-            // 显示刷新成功消息
             this.showMessage('挑战进度已刷新！', 'success');
-        } else {
-            this.showMessage('当前没有设定挑战', 'warning');
         }
     }
 
-    showChallengeModal() {
+    // 刷新所有挑战进度
+    refreshAllChallengeProgress() {
+        this.challengeData.forEach(challenge => {
+            challenge.currentProgress = this.calculateTotal();
+            this.checkChallengeCompletion(challenge);
+        });
+        this.updateChallengeDisplay();
+        this.showMessage('所有挑战进度已刷新！', 'success');
+    }
+
+    // 检查挑战完成状态
+    checkChallengeCompletion(challenge) {
+        if (!challenge.completed && challenge.currentProgress >= challenge.target) {
+            challenge.completed = true;
+            challenge.completedDate = new Date().toISOString();
+        }
+    }
+
+    showChallengeModal(challengeId = null) {
+        const isEditing = challengeId !== null;
+        const challenge = isEditing ? this.getChallenge(challengeId) : null;
+
         const modal = document.createElement('div');
         modal.className = 'challenge-modal';
-        modal.innerHTML = `
+
+        // 构建HTML内容
+        let modalHTML = `
             <div class="challenge-modal-backdrop">
                 <div class="challenge-modal-content">
                     <button class="challenge-modal-close">&times;</button>
                     <div class="challenge-modal-icon">🎯</div>
-                    <div class="challenge-modal-title">设定攒钱挑战</div>
+                    <div class="challenge-modal-title">${isEditing ? '编辑挑战' : '设定新挑战'}</div>
                     <div class="challenge-modal-form">
                         <div class="challenge-form-group">
                             <label for="challengeTargetInput">目标金币数量：</label>
-                            <input type="number" id="challengeTargetInput" min="100" step="100" placeholder="例如：1000" value="${this.challengeData.target || ''}">
+                            <input type="number" id="challengeTargetInput" min="100" step="100" placeholder="例如：1000" value="${challenge ? challenge.target : ''}">
                         </div>
+                        <div class="challenge-form-group">
+                            <label for="challengeEndDateInput">截止日期（可选）：</label>
+                            <input type="date" id="challengeEndDateInput" value="${challenge && challenge.endDate ? new Date(challenge.endDate).toISOString().split('T')[0] : ''}">
+                        </div>
+        `;
+
+        if (isEditing) {
+            modalHTML += `
+                        <div class="challenge-form-group">
+                            <label>挑战进度：</label>
+                            <div class="challenge-progress-preview">
+                                <span>${challenge.currentProgress} / ${challenge.target}</span>
+                                <span>(${(challenge.currentProgress / challenge.target * 100).toFixed(1)}%)</span>
+                            </div>
+                        </div>
+            `;
+        }
+
+        modalHTML += `
                         <div class="challenge-form-actions">
                             <button id="cancelChallengeBtn" class="challenge-cancel-btn">取消</button>
-                            <button id="confirmChallengeBtn" class="challenge-confirm-btn">确定</button>
+                            <button id="confirmChallengeBtn" class="challenge-confirm-btn">${isEditing ? '更新' : '创建'}</button>
                         </div>
                     </div>
                 </div>
             </div>
         `;
 
+        modal.innerHTML = modalHTML;
         document.body.appendChild(modal);
 
         // 添加事件监听器
@@ -1280,6 +1464,7 @@ class CoinTracker {
 
         confirmBtn.onclick = () => {
             const targetInput = document.getElementById('challengeTargetInput');
+            const endDateInput = document.getElementById('challengeEndDateInput');
             const target = parseInt(targetInput.value);
 
             if (isNaN(target) || target < 100) {
@@ -1287,7 +1472,11 @@ class CoinTracker {
                 return;
             }
 
-            this.setChallenge(target);
+            if (isEditing) {
+                this.updateChallenge(challengeId, target, endDateInput.value);
+            } else {
+                this.createNewChallenge(target, endDateInput.value);
+            }
             this.closeChallengeModal();
         };
 
@@ -1297,23 +1486,26 @@ class CoinTracker {
         }, 100);
     }
 
-    setChallenge(target) {
-        const today = new Date();
-        const endDate = new Date(today);
-        endDate.setMonth(endDate.getMonth() + 1); // 默认1个月挑战
-
-        this.challengeData = {
-            target: target,
-            startDate: today.toISOString(),
-            endDate: endDate.toISOString(),
-            currentProgress: this.calculateTotal(),
-            completed: false,
-            completedDate: null
-        };
-
+    // 创建新挑战
+    createNewChallenge(target, endDate = null) {
+        this.createChallenge(target, endDate);
         this.updateChallengeDisplay();
-        this.showMessage(`🎯 挑战设定成功！目标：${target}金币`, 'success');
+        this.showMessage(`🎯 新挑战设定成功！目标：${target}金币`, 'success');
     }
+
+    // 更新挑战
+    updateChallenge(challengeId, target, endDate = null) {
+        const challenge = this.getChallenge(challengeId);
+        if (challenge) {
+            challenge.target = target;
+            challenge.endDate = endDate ? new Date(endDate).toISOString() : null;
+            challenge.currentProgress = this.calculateTotal(); // 刷新进度
+            this.checkChallengeCompletion(challenge);
+            this.updateChallengeDisplay();
+            this.showMessage('挑战已更新！', 'success');
+        }
+    }
+
 
     closeChallengeModal() {
         const modal = document.querySelector('.challenge-modal');
@@ -1557,16 +1749,38 @@ class CoinTracker {
 
     getDefaultAchievements() {
         return {
+            // 首次成就
             first_record: { unlocked: false, unlockedDate: null },
+
+            // 连击成就
             week_streak: { unlocked: false, unlockedDate: null },
             month_streak: { unlocked: false, unlockedDate: null },
             hundred_days: { unlocked: false, unlockedDate: null },
+            half_year: { unlocked: false, unlockedDate: null },
+            year_streak: { unlocked: false, unlockedDate: null },
+
+            // 金币里程碑成就
             thousand_coins: { unlocked: false, unlockedDate: null },
             ten_thousand: { unlocked: false, unlockedDate: null },
             twenty_thousand: { unlocked: false, unlockedDate: null },
             thirty_thousand: { unlocked: false, unlockedDate: null },
             forty_thousand: { unlocked: false, unlockedDate: null },
-            fifty_thousand: { unlocked: false, unlockedDate: null }
+            fifty_thousand: { unlocked: false, unlockedDate: null },
+            hundred_thousand: { unlocked: false, unlockedDate: null },
+            million_coins: { unlocked: false, unlockedDate: null },
+
+            // 记录天数成就
+            fifty_days: { unlocked: false, unlockedDate: null },
+            hundred_days_record: { unlocked: false, unlockedDate: null },
+            two_hundred_days: { unlocked: false, unlockedDate: null },
+            three_hundred_days: { unlocked: false, unlockedDate: null },
+            five_hundred_days: { unlocked: false, unlockedDate: null },
+            thousand_days: { unlocked: false, unlockedDate: null },
+
+            // 特殊成就
+            perfect_month: { unlocked: false, unlockedDate: null },
+            no_miss_week: { unlocked: false, unlockedDate: null },
+            comeback_king: { unlocked: false, unlockedDate: null }
         };
     }
 
@@ -1582,7 +1796,7 @@ class CoinTracker {
             newUnlocked.push('first_record');
         }
 
-        // 检查连续记录成就
+        // 检查连击成就
         if (currentStreak >= 7 && !this.achievements.week_streak.unlocked) {
             this.unlockAchievement('week_streak');
             newUnlocked.push('week_streak');
@@ -1598,7 +1812,17 @@ class CoinTracker {
             newUnlocked.push('hundred_days');
         }
 
-        // 检查金币成就
+        if (currentStreak >= 180 && !this.achievements.half_year.unlocked) {
+            this.unlockAchievement('half_year');
+            newUnlocked.push('half_year');
+        }
+
+        if (currentStreak >= 365 && !this.achievements.year_streak.unlocked) {
+            this.unlockAchievement('year_streak');
+            newUnlocked.push('year_streak');
+        }
+
+        // 检查金币里程碑成就
         if (totalCoins >= 1000 && !this.achievements.thousand_coins.unlocked) {
             this.unlockAchievement('thousand_coins');
             newUnlocked.push('thousand_coins');
@@ -1629,6 +1853,63 @@ class CoinTracker {
             newUnlocked.push('fifty_thousand');
         }
 
+        if (totalCoins >= 100000 && !this.achievements.hundred_thousand.unlocked) {
+            this.unlockAchievement('hundred_thousand');
+            newUnlocked.push('hundred_thousand');
+        }
+
+        if (totalCoins >= 1000000 && !this.achievements.million_coins.unlocked) {
+            this.unlockAchievement('million_coins');
+            newUnlocked.push('million_coins');
+        }
+
+        // 检查记录天数成就
+        if (recordDays >= 50 && !this.achievements.fifty_days.unlocked) {
+            this.unlockAchievement('fifty_days');
+            newUnlocked.push('fifty_days');
+        }
+
+        if (recordDays >= 100 && !this.achievements.hundred_days_record.unlocked) {
+            this.unlockAchievement('hundred_days_record');
+            newUnlocked.push('hundred_days_record');
+        }
+
+        if (recordDays >= 200 && !this.achievements.two_hundred_days.unlocked) {
+            this.unlockAchievement('two_hundred_days');
+            newUnlocked.push('two_hundred_days');
+        }
+
+        if (recordDays >= 300 && !this.achievements.three_hundred_days.unlocked) {
+            this.unlockAchievement('three_hundred_days');
+            newUnlocked.push('three_hundred_days');
+        }
+
+        if (recordDays >= 500 && !this.achievements.five_hundred_days.unlocked) {
+            this.unlockAchievement('five_hundred_days');
+            newUnlocked.push('five_hundred_days');
+        }
+
+        if (recordDays >= 1000 && !this.achievements.thousand_days.unlocked) {
+            this.unlockAchievement('thousand_days');
+            newUnlocked.push('thousand_days');
+        }
+
+        // 检查特殊成就
+        if (this.checkPerfectMonth() && !this.achievements.perfect_month.unlocked) {
+            this.unlockAchievement('perfect_month');
+            newUnlocked.push('perfect_month');
+        }
+
+        if (this.checkNoMissWeek() && !this.achievements.no_miss_week.unlocked) {
+            this.unlockAchievement('no_miss_week');
+            newUnlocked.push('no_miss_week');
+        }
+
+        if (this.checkComebackKing() && !this.achievements.comeback_king.unlocked) {
+            this.unlockAchievement('comeback_king');
+            newUnlocked.push('comeback_king');
+        }
+
         // 显示成就解锁提示
         if (newUnlocked.length > 0) {
             setTimeout(() => {
@@ -1637,6 +1918,37 @@ class CoinTracker {
                 });
             }, 500);
         }
+    }
+
+    // 检查完美月（整个月每天都记录）
+    checkPerfectMonth() {
+        if (this.coinData.length < 28) return false; // 至少需要28天记录
+
+        const monthlyStats = this.calculateMonthlyStats();
+        for (const month of monthlyStats) {
+            const monthStart = new Date(month.year, month.month - 1, 1);
+            const monthEnd = new Date(month.year, month.month, 0);
+            const daysInMonth = monthEnd.getDate();
+
+            // 如果该月记录天数等于该月的总天数，且连续记录
+            if (month.count === daysInMonth) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 检查无缺席周（连续7天记录）
+    checkNoMissWeek() {
+        return this.calculateCurrentStreak() >= 7;
+    }
+
+    // 检查王者归来（中断后重新开始并达到更高连击）
+    checkComebackKing() {
+        if (this.streakData.longestStreak < 7) return false;
+
+        // 如果当前连击达到最长连击的1.5倍
+        return this.streakData.currentStreak >= Math.floor(this.streakData.longestStreak * 1.5);
     }
 
     calculateCurrentStreak() {
@@ -1674,16 +1986,38 @@ class CoinTracker {
 
     showAchievementUnlock(achievementId) {
         const achievementNames = {
+            // 首次成就
             first_record: '首次记录',
+
+            // 连击成就
             week_streak: '坚持7天',
             month_streak: '坚持30天',
             hundred_days: '百日坚持',
+            half_year: '半年坚持',
+            year_streak: '年度坚持',
+
+            // 金币里程碑成就
             thousand_coins: '千金富翁',
             ten_thousand: '万元户',
             twenty_thousand: '两万富翁',
             thirty_thousand: '三万富翁',
             forty_thousand: '四万富翁',
-            fifty_thousand: '五万富翁'
+            fifty_thousand: '五万富翁',
+            hundred_thousand: '十万富翁',
+            million_coins: '百万富翁',
+
+            // 记录天数成就
+            fifty_days: '坚持50天',
+            hundred_days_record: '坚持100天',
+            two_hundred_days: '坚持200天',
+            three_hundred_days: '坚持300天',
+            five_hundred_days: '坚持500天',
+            thousand_days: '坚持1000天',
+
+            // 特殊成就
+            perfect_month: '完美月',
+            no_miss_week: '无缺席周',
+            comeback_king: '王者归来'
         };
 
         // 创建成就解锁动画元素
@@ -1763,16 +2097,38 @@ class CoinTracker {
         if (!achievement || !achievement.unlocked) return;
 
         const achievementNames = {
+            // 首次成就
             first_record: '首次记录',
+
+            // 连击成就
             week_streak: '坚持7天',
             month_streak: '坚持30天',
             hundred_days: '百日坚持',
+            half_year: '半年坚持',
+            year_streak: '年度坚持',
+
+            // 金币里程碑成就
             thousand_coins: '千金富翁',
             ten_thousand: '万元户',
             twenty_thousand: '两万富翁',
             thirty_thousand: '三万富翁',
             forty_thousand: '四万富翁',
-            fifty_thousand: '五万富翁'
+            fifty_thousand: '五万富翁',
+            hundred_thousand: '十万富翁',
+            million_coins: '百万富翁',
+
+            // 记录天数成就
+            fifty_days: '坚持50天',
+            hundred_days_record: '坚持100天',
+            two_hundred_days: '坚持200天',
+            three_hundred_days: '坚持300天',
+            five_hundred_days: '坚持500天',
+            thousand_days: '坚持1000天',
+
+            // 特殊成就
+            perfect_month: '完美月',
+            no_miss_week: '无缺席周',
+            comeback_king: '王者归来'
         };
 
         const unlockDate = new Date(achievement.unlockedDate);
