@@ -209,12 +209,12 @@ class CoinTracker {
     // 更新指定日期的连击数据
     updateStreakForDate(date) {
         const today = this.getBeijingDate();
-        
+
         // 如果是今天的记录
         if (date === today) {
             this.streakData.todayCompleted = true;
         }
-        
+
         // 计算连击逻辑
         if (this.streakData.lastRecordDate === null) {
             // 第一次记录
@@ -224,7 +224,7 @@ class CoinTracker {
             const lastRecordDate = new Date(this.streakData.lastRecordDate + 'T00:00:00+08:00');
             const currentRecordDate = new Date(date + 'T00:00:00+08:00');
             const dayDiff = Math.floor((currentRecordDate - lastRecordDate) / (1000 * 60 * 60 * 24));
-            
+
             if (dayDiff === 1) {
                 // 连续的一天，连击+1
                 this.streakData.currentStreak += 1;
@@ -234,9 +234,9 @@ class CoinTracker {
             }
             // dayDiff === 0 表示同一天，不改变连击
         }
-        
+
         this.streakData.lastRecordDate = date;
-        
+
         // 更新最长连击
         if (this.streakData.currentStreak > this.streakData.longestStreak) {
             this.streakData.longestStreak = this.streakData.currentStreak;
@@ -1064,13 +1064,21 @@ class CoinTracker {
     updateStreakDisplay() {
         const today = this.getBeijingDate();
 
-        // 检查是否是新的一天
-        if (this.streakData.lastRecordDate !== today) {
-            if (this.streakData.todayCompleted) {
-                // 昨天完成了记录，今天重置连击
+        // 检查是否跨天
+        if (this.streakData.lastRecordDate !== null && this.streakData.lastRecordDate !== today) {
+            const yesterdayStr = this.getBeijingYesterdayDate();
+
+            // 检查昨天是否有记录
+            const hasYesterdayRecord = this.coinData.some(record => record.date === yesterdayStr);
+
+            if (!hasYesterdayRecord) {
+                // 昨天没记录，说明连击中断，重置连击为0
                 this.streakData.currentStreak = 0;
-                this.streakData.todayCompleted = false;
             }
+            // 如果昨天有记录，连击保持不变，等今天记录时再更新
+
+            // 重置今天的完成状态，为新的一天做准备
+            this.streakData.todayCompleted = false;
         }
 
         // 更新显示
@@ -1089,7 +1097,7 @@ class CoinTracker {
         const makeupBtn = document.getElementById('makeupRecordBtn');
         const yesterdayStr = this.getBeijingYesterdayDate();
 
-        // 如果昨天没记录且今天还没记录，显示补签按钮
+        // 如果昨天没记录且今天还没记录且有历史记录，显示补签按钮
         if (!this.streakData.todayCompleted && this.coinData.length > 0) {
             const lastRecord = this.coinData[this.coinData.length - 1];
             if (lastRecord.date !== today && lastRecord.date !== yesterdayStr) {
