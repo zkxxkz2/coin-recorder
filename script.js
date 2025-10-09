@@ -1193,7 +1193,7 @@ class CoinTracker {
             document.getElementById('challengeProgress').textContent = this.challengeData.currentProgress;
 
             const percentage = Math.min((this.challengeData.currentProgress / this.challengeData.target) * 100, 100);
-            document.getElementById('challengePercentage').textContent = `${Math.round(percentage)}%`;
+            document.getElementById('challengePercentage').textContent = `${percentage.toFixed(2)}%`;
 
             const progressFill = document.getElementById('challengeProgressFill');
             progressFill.style.width = `${percentage}%`;
