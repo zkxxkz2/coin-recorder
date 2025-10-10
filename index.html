@@ -169,7 +169,35 @@
             <div class="section-content" id="challengeContent">
                 <h2>个人挑战</h2>
                 <div class="challenge-container">
-                    <!-- 挑战内容将由JavaScript动态生成 -->
+                    <div class="challenge-current">
+                        <div class="challenge-header">
+                            <h3>当前挑战</h3>
+                            <div class="challenge-controls">
+                                <button id="refreshChallengeBtn" class="challenge-btn refresh-btn" title="刷新挑战进度">🔄 刷新</button>
+                                <button id="setChallengeBtn" class="challenge-btn">设定挑战</button>
+                            </div>
+                        </div>
+                        <div class="challenge-info" id="currentChallengeInfo" style="display: none;">
+                            <div class="challenge-detail">
+                                <span class="challenge-label">目标金币：</span>
+                                <span class="challenge-value" id="challengeTarget">0</span>
+                            </div>
+                            <div class="challenge-detail">
+                                <span class="challenge-label">当前进度：</span>
+                                <span class="challenge-value" id="challengeProgress">0</span>
+                            </div>
+                            <div class="challenge-detail">
+                                <span class="challenge-label">完成百分比：</span>
+                                <span class="challenge-value" id="challengePercentage">0%</span>
+                            </div>
+                            <div class="challenge-progress-bar">
+                                <div class="challenge-progress-fill" id="challengeProgressFill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="no-challenge" id="noChallengeInfo">
+                            <p>还没有设定挑战，快来设定一个吧！</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -345,7 +373,7 @@
         <!-- 底部信息 -->
         <footer class="footer">
             <p>&copy; 2025 金币记录器</p>
-            <p class="version-info">版本 v1.2.2</p>
+            <p class="version-info">版本 v1.2.1</p>
         </footer>
     </div>
 
